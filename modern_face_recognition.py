@@ -183,9 +183,14 @@ class ModernFaceRecognitionApp:
         tk.Label(photo_frame, text="Фотография:", font=("Arial", 11, "bold"), 
                 bg="white", fg="#374151").pack(anchor="w", pady=(0, 8))
         
-        self.photo_display = tk.Label(photo_frame, text="Нет фото", bg="#F3F4F6", 
-                                     width=20, height=10, relief="solid", bd=1)
-        self.photo_display.pack()
+        # Контейнер для фото с фиксированными размерами
+        photo_container = tk.Frame(photo_frame, bg="#F3F4F6", relief="solid", bd=1, width=180, height=180)
+        photo_container.pack(pady=(0, 10))
+        photo_container.pack_propagate(False)
+        
+        self.photo_display = tk.Label(photo_container, text="Нет фото", bg="#F3F4F6", 
+                                     font=("Arial", 10), fg="#6B7280")
+        self.photo_display.pack(fill="both", expand=True)
     
     def setup_management_tab(self):
         # Настройка вкладки управления пользователями
@@ -440,27 +445,34 @@ class ModernFaceRecognitionApp:
         self.user_id_label.config(text=user_id)
         self.name_label.config(text=name)
         
-        # Загружаем и отображаем фотографию
+        # Загружаем и отображаем фотографию с правильным размером
         if photo_path and os.path.exists(photo_path):
             try:
+                # Открываем изображение
                 pil_image = Image.open(photo_path)
-                pil_image = pil_image.resize((120, 120), Image.Resampling.LANCZOS)
+                
+                # Изменяем размер под контейнер (170x170 с отступами)
+                pil_image = pil_image.resize((170, 170), Image.Resampling.LANCZOS)
                 photo = ImageTk.PhotoImage(pil_image)
                 
+                # Отображаем фото
                 self.photo_display.config(image=photo, text="")
-                self.photo_display.image = photo
+                self.photo_display.image = photo  # Сохраняем ссылку
+                
             except Exception as e:
                 print(f"Ошибка загрузки фото: {e}")
-                self.photo_display.config(image="", text="Ошибка загрузки")
+                self.photo_display.config(image="", text="Ошибка\nзагрузки", 
+                                        font=("Arial", 9), fg="#EF4444")
         else:
-            self.photo_display.config(image="", text="Фото не найдено")
+            self.photo_display.config(image="", text="Фото\nне найдено", 
+                                    font=("Arial", 9), fg="#6B7280")
     
     def reset_user_info(self):
         # Сброс информации о пользователе
         self.status_label.config(text="⏳ Ожидание...", fg="#6B7280")
         self.user_id_label.config(text="—")
         self.name_label.config(text="—")
-        self.photo_display.config(image="", text="Нет фото")
+        self.photo_display.config(image="", text="Нет фото", font=("Arial", 10), fg="#6B7280")
     
     def select_photo(self):
         # Выбор фотографии пользователя
