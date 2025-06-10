@@ -92,99 +92,100 @@ class ModernFaceRecognitionApp:
         main_container = tk.Frame(self.recognition_frame, bg="#6B46C1")
         main_container.pack(fill="both", expand=True, padx=20, pady=20)
         
-        # Левая панель - Видео
-        left_panel = tk.Frame(main_container, bg="white", relief="raised", bd=2)
-        left_panel.pack(side="left", fill="both", expand=True, padx=(0, 10))
+        # Левая панель - Видео (делаем меньше)
+        left_panel = tk.Frame(main_container, bg="white", relief="raised", bd=2, width=500)
+        left_panel.pack(side="left", fill="y", padx=(0, 10))
+        left_panel.pack_propagate(False)
         
         # Заголовок видео панели
-        video_header = tk.Frame(left_panel, bg="#7C3AED", height=50)
+        video_header = tk.Frame(left_panel, bg="#7C3AED", height=40)
         video_header.pack(fill="x")
         video_header.pack_propagate(False)
         
         video_title = tk.Label(video_header, text="LIVE CAMERA", 
-                              font=("Arial", 14, "bold"), bg="#7C3AED", fg="white")
+                              font=("Arial", 12, "bold"), bg="#7C3AED", fg="white")
         video_title.pack(expand=True)
         
-        # Видео контейнер
-        video_container = tk.Frame(left_panel, bg="black")
-        video_container.pack(fill="both", expand=True, padx=10, pady=10)
+        # Видео контейнер (фиксированный размер)
+        video_container = tk.Frame(left_panel, bg="black", width=480, height=360)
+        video_container.pack(padx=10, pady=10)
+        video_container.pack_propagate(False)
         
         # Метка для отображения видео
         self.video_label = tk.Label(video_container, text="Камера не запущена", 
-                                   bg="black", fg="white", font=("Arial", 14))
+                                   bg="black", fg="white", font=("Arial", 12))
         self.video_label.pack(fill="both", expand=True)
         
-        # Кнопки управления камерой
-        camera_controls = tk.Frame(left_panel, bg="white", height=60)
+        # Кнопки управления камерой (компактные)
+        camera_controls = tk.Frame(left_panel, bg="white", height=50)
         camera_controls.pack(fill="x", padx=10, pady=(0, 10))
         camera_controls.pack_propagate(False)
         
-        self.start_button = tk.Button(camera_controls, text="▶ Запустить камеру", 
-                                     font=("Arial", 11, "bold"), bg="#10B981", fg="white",
-                                     relief="flat", padx=20, pady=8, command=self.start_camera)
-        self.start_button.pack(side="left", padx=(0, 10))
+        self.start_button = tk.Button(camera_controls, text="▶ Запуск", 
+                                     font=("Arial", 10, "bold"), bg="#10B981", fg="white",
+                                     relief="flat", padx=15, pady=6, command=self.start_camera)
+        self.start_button.pack(side="left", padx=(0, 5))
         
-        self.stop_button = tk.Button(camera_controls, text="⏹ Остановить камеру", 
-                                    font=("Arial", 11, "bold"), bg="#EF4444", fg="white",
-                                    relief="flat", padx=20, pady=8, command=self.stop_camera,
+        self.stop_button = tk.Button(camera_controls, text="⏹ Стоп", 
+                                    font=("Arial", 10, "bold"), bg="#EF4444", fg="white",
+                                    relief="flat", padx=15, pady=6, command=self.stop_camera,
                                     state="disabled")
-        self.stop_button.pack(side="left")
+        self.stop_button.pack(side="left", padx=(0, 5))
         
-        # Правая панель - Информация о распознанном пользователе
-        right_panel = tk.Frame(main_container, bg="white", relief="raised", bd=2, width=400)
-        right_panel.pack(side="right", fill="y")
-        right_panel.pack_propagate(False)
+        # Кнопка обновления кодировок (перенесли сюда)
+        refresh_btn = tk.Button(camera_controls, text="🔄 Обновить", 
+                               font=("Arial", 10, "bold"), bg="#6366F1", fg="white",
+                               relief="flat", padx=15, pady=6, command=self.load_encodings)
+        refresh_btn.pack(side="right")
+        
+        # Правая панель - Информация о распознанном пользователе (шире)
+        right_panel = tk.Frame(main_container, bg="white", relief="raised", bd=2)
+        right_panel.pack(side="right", fill="both", expand=True)
         
         # === СЕКЦИЯ РАСПОЗНАВАНИЯ ===
         recognition_info = tk.Frame(right_panel, bg="white")
-        recognition_info.pack(fill="both", expand=True, padx=20, pady=20)
+        recognition_info.pack(fill="both", expand=True, padx=15, pady=15)
         
         # Заголовок секции распознавания
         rec_header = tk.Label(recognition_info, text="РАСПОЗНАННЫЙ ПОЛЬЗОВАТЕЛЬ", 
-                             font=("Arial", 16, "bold"), bg="white", fg="#374151")
-        rec_header.pack(anchor="w", pady=(0, 20))
+                             font=("Arial", 14, "bold"), bg="white", fg="#374151")
+        rec_header.pack(anchor="w", pady=(0, 15))
         
         # Статус распознавания
         self.status_label = tk.Label(recognition_info, text="Ожидание...", 
-                                    font=("Arial", 18, "bold"), bg="white", fg="#6B7280")
-        self.status_label.pack(anchor="w", pady=(0, 20))
+                                    font=("Arial", 16, "bold"), bg="white", fg="#6B7280")
+        self.status_label.pack(anchor="w", pady=(0, 15))
         
-        # Информация о пользователе
+        # Информация о пользователе в компактном виде
         info_container = tk.Frame(recognition_info, bg="#F9FAFB", relief="solid", bd=1)
-        info_container.pack(fill="x", pady=(0, 20))
+        info_container.pack(fill="x", pady=(0, 15))
         
         # ID пользователя
         id_frame = tk.Frame(info_container, bg="#F9FAFB")
-        id_frame.pack(fill="x", padx=15, pady=10)
+        id_frame.pack(fill="x", padx=10, pady=8)
         
-        tk.Label(id_frame, text="ID пользователя:", font=("Arial", 12, "bold"), bg="#F9FAFB", fg="#374151").pack(side="left")
-        self.user_id_label = tk.Label(id_frame, text="—", font=("Arial", 12), bg="#F9FAFB", fg="#6B7280")
+        tk.Label(id_frame, text="ID:", font=("Arial", 11, "bold"), bg="#F9FAFB", fg="#374151").pack(side="left")
+        self.user_id_label = tk.Label(id_frame, text="—", font=("Arial", 11), bg="#F9FAFB", fg="#6B7280")
         self.user_id_label.pack(side="right")
         
         # Имя пользователя
         name_frame = tk.Frame(info_container, bg="#F9FAFB")
-        name_frame.pack(fill="x", padx=15, pady=10)
+        name_frame.pack(fill="x", padx=10, pady=8)
         
-        tk.Label(name_frame, text="Имя:", font=("Arial", 12, "bold"), bg="#F9FAFB", fg="#374151").pack(side="left")
-        self.name_label = tk.Label(name_frame, text="—", font=("Arial", 12), bg="#F9FAFB", fg="#6B7280")
+        tk.Label(name_frame, text="Имя:", font=("Arial", 11, "bold"), bg="#F9FAFB", fg="#374151").pack(side="left")
+        self.name_label = tk.Label(name_frame, text="—", font=("Arial", 11), bg="#F9FAFB", fg="#6B7280")
         self.name_label.pack(side="right")
         
-        # Фотография пользователя
+        # Фотография пользователя (компактнее)
         photo_frame = tk.Frame(recognition_info, bg="white")
-        photo_frame.pack(fill="x", pady=(0, 20))
+        photo_frame.pack(fill="x")
         
-        tk.Label(photo_frame, text="Фотография:", font=("Arial", 12, "bold"), 
-                bg="white", fg="#374151").pack(anchor="w", pady=(0, 10))
+        tk.Label(photo_frame, text="Фотография:", font=("Arial", 11, "bold"), 
+                bg="white", fg="#374151").pack(anchor="w", pady=(0, 8))
         
         self.photo_display = tk.Label(photo_frame, text="Нет фото", bg="#F3F4F6", 
-                                     width=25, height=12, relief="solid", bd=1)
+                                     width=20, height=10, relief="solid", bd=1)
         self.photo_display.pack()
-        
-        # Кнопка обновления кодировок
-        refresh_btn = tk.Button(recognition_info, text="🔄 Обновить кодировки", 
-                               font=("Arial", 12, "bold"), bg="#6366F1", fg="white",
-                               relief="flat", padx=20, pady=10, command=self.load_encodings)
-        refresh_btn.pack(fill="x", pady=(20, 0))
     
     def setup_management_tab(self):
         # Настройка вкладки управления пользователями
