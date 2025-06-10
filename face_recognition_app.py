@@ -76,23 +76,22 @@ class FaceRecognitionApp:
         
         # Фотография пользователя
         ttk.Label(info_frame, text="Фотография:", font=("Arial", 10, "bold")).pack(anchor="w")
-        self.photo_label = ttk.Label(info_frame, text="Нет фото", background="lightgray", width=20, height=10)
+        # Используем обычный Label вместо ttk.Label для отображения фото
+        self.photo_label = tk.Label(info_frame, text="Нет фото", bg="lightgray", width=20, height=10)
         self.photo_label.pack(pady=10)
         
         # Кнопка обновления кодировок
         ttk.Button(info_frame, text="Обновить кодировки", command=self.load_encodings).pack(pady=10)
     
     def load_encodings(self):
-        # Загрузка кодировок лиц из файла
+        # Загрузка кодировок лиц из базы данных
         try:
-            if os.path.exists("encodings.pickle"):
-                with open("encodings.pickle", "rb") as f:
-                    self.known_encodings, self.known_user_ids = pickle.load(f)
-                print(f"Загружено кодировок: {len(self.known_encodings)}")
-            else:
-                print("Файл кодировок не найден. Создайте кодировки в управлении пользователями.")
-                self.known_encodings = []
-                self.known_user_ids = []
+            self.known_encodings, self.known_user_ids = self.db.get_all_encodings()
+            print(f"Загружено кодировок из БД: {len(self.known_encodings)}")
+            
+            if not self.known_encodings:
+                print("Кодировки не найдены. Добавьте пользователей в управлении пользователями.")
+                
         except Exception as e:
             print(f"Ошибка загрузки кодировок: {e}")
             self.known_encodings = []
@@ -253,7 +252,7 @@ class FaceRecognitionApp:
         self.status_label.config(text="Ожидание...", foreground="black")
         self.user_id_label.config(text="—")
         self.name_label.config(text="—")
-        self.photo_label.config(image="", text="Нет фото")
+        self.photo_label.config(image="", text="Нет фото", bg="lightgray")
     
     def on_closing(self):
         # Обработка закрытия окна

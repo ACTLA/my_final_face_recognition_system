@@ -18,24 +18,31 @@ class DatabaseManager:
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id TEXT UNIQUE NOT NULL,
                 name TEXT NOT NULL,
-                photo_path TEXT
+                photo_path TEXT,
+                face_encoding BLOB
             )
         ''')
         
         conn.commit()
         conn.close()
     
-    def add_user(self, user_id, name, photo_path):
+    def add_user(self, user_id, name, photo_path, face_encoding=None):
         # Добавление нового пользователя
         conn = sqlite3.connect(self.db_name)
         cursor = conn.cursor()
         
         try:
+            # Сериализуем кодировку лица если есть
+            encoding_blob = None
+            if face_encoding is not None:
+                import pickle
+                encoding_blob = pickle.dumps(face_encoding)
+            
             # Вставляем нового пользователя
             cursor.execute('''
-                INSERT INTO users (user_id, name, photo_path) 
-                VALUES (?, ?, ?)
-            ''', (user_id, name, photo_path))
+                INSERT INTO users (user_id, name, photo_path, face_encoding) 
+                VALUES (?, ?, ?, ?)
+            ''', (user_id, name, photo_path, encoding_blob))
             
             conn.commit()
             conn.close()
@@ -43,7 +50,42 @@ class DatabaseManager:
         except sqlite3.IntegrityError:
             # Если пользователь уже существует
             conn.close()
-            return False
+    def get_all_encodings(self):
+        # Получение всех кодировок лиц
+        conn = sqlite3.connect(self.db_name)
+        cursor = conn.cursor()
+        
+        cursor.execute('SELECT user_id, face_encoding FROM users WHERE face_encoding IS NOT NULL')
+        results = cursor.fetchall()
+        
+        encodings = []
+        user_ids = []
+        
+        for user_id, encoding_blob in results:
+            if encoding_blob:
+                import pickle
+                # Десериализуем кодировку
+                encoding = pickle.loads(encoding_blob)
+                encodings.append(encoding)
+                user_ids.append(user_id)
+        
+        conn.close()
+        return encodings, user_ids
+    
+    def update_user_encoding(self, user_id, face_encoding):
+        # Обновление кодировки лица пользователя
+        conn = sqlite3.connect(self.db_name)
+        cursor = conn.cursor()
+        
+        import pickle
+        encoding_blob = pickle.dumps(face_encoding)
+        
+        cursor.execute('UPDATE users SET face_encoding = ? WHERE user_id = ?', 
+                      (encoding_blob, user_id))
+        
+        conn.commit()
+        conn.close()
+        return cursor.rowcount > 0
     
     def get_user(self, user_id):
         # Получение пользователя по ID

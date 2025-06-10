@@ -73,9 +73,6 @@ class UserManagement:
         
         # Кнопка удаления пользователя
         ttk.Button(list_frame, text="Удалить выбранного", command=self.delete_user).pack(pady=10)
-        
-        # Кнопка обновления кодировок лиц
-        ttk.Button(self.root, text="Обновить кодировки лиц", command=self.update_encodings).pack(pady=10)
     
     def select_photo(self):
         # Выбор фотографии пользователя
@@ -110,8 +107,11 @@ class UserManagement:
             # Копируем файл в папку photos
             shutil.copy2(self.photo_path, photo_destination)
             
-            # Добавляем пользователя в базу данных
-            if self.db.add_user(user_id, name, photo_destination):
+            # Создаем кодировку лица
+            face_encoding = self.create_face_encoding(photo_destination)
+            
+            # Добавляем пользователя в базу данных с кодировкой
+            if self.db.add_user(user_id, name, photo_destination, face_encoding):
                 messagebox.showinfo("Успех", "Пользователь добавлен!")
                 
                 # Очищаем поля
@@ -130,6 +130,24 @@ class UserManagement:
                     
         except Exception as e:
             messagebox.showerror("Ошибка", f"Не удалось добавить пользователя: {str(e)}")
+    
+    def create_face_encoding(self, photo_path):
+        # Создание кодировки лица из фотографии
+        try:
+            # Загружаем изображение
+            image = cv2.imread(photo_path)
+            rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            
+            # Получаем кодировку лица
+            face_encodings = face_recognition.face_encodings(rgb_image)
+            
+            if face_encodings:
+                return face_encodings[0]
+            else:
+                raise Exception("Лицо не найдено на фотографии")
+                
+        except Exception as e:
+            raise Exception(f"Ошибка создания кодировки: {str(e)}")
     
     def delete_user(self):
         # Удаление выбранного пользователя
@@ -162,48 +180,6 @@ class UserManagement:
             # user = (id, user_id, name, photo_path)
             photo_name = os.path.basename(user[3]) if user[3] else "Нет"
             self.user_tree.insert("", "end", values=(user[1], user[2], photo_name))
-    
-    def update_encodings(self):
-        # Создание файла с кодировками лиц для распознавания
-        try:
-            users = self.db.get_all_users()
-            if not users:
-                messagebox.showwarning("Предупреждение", "Нет пользователей для кодирования!")
-                return
-            
-            encode_list = []
-            user_ids = []
-            
-            # Обрабатываем каждого пользователя
-            for user in users:
-                user_id = user[1]
-                photo_path = user[3]
-                
-                if os.path.exists(photo_path):
-                    # Загружаем изображение
-                    image = cv2.imread(photo_path)
-                    rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-                    
-                    # Получаем кодировку лица
-                    face_encodings = face_recognition.face_encodings(rgb_image)
-                    
-                    if face_encodings:
-                        encode_list.append(face_encodings[0])
-                        user_ids.append(user_id)
-                    else:
-                        print(f"Лицо не найдено на фото пользователя {user_id}")
-            
-            # Сохраняем кодировки в файл
-            if encode_list:
-                with open("encodings.pickle", "wb") as f:
-                    pickle.dump([encode_list, user_ids], f)
-                
-                messagebox.showinfo("Успех", f"Кодировки обновлены! Обработано: {len(encode_list)} пользователей")
-            else:
-                messagebox.showerror("Ошибка", "Не удалось создать кодировки!")
-                
-        except Exception as e:
-            messagebox.showerror("Ошибка", f"Ошибка при создании кодировок: {str(e)}")
 
 # Запуск окна управления пользователями
 if __name__ == "__main__":
