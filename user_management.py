@@ -136,15 +136,20 @@ class UserManagement:
         try:
             # Загружаем изображение
             image = cv2.imread(photo_path)
+            if image is None:
+                raise Exception("Не удалось загрузить изображение")
+            
+            # Конвертируем в RGB (как в рабочем коде)
             rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
             
             # Получаем кодировку лица
             face_encodings = face_recognition.face_encodings(rgb_image)
             
             if face_encodings:
+                print(f"Кодировка создана успешно для {os.path.basename(photo_path)}")
                 return face_encodings[0]
             else:
-                raise Exception("Лицо не найдено на фотографии")
+                raise Exception("Лицо не найдено на фотографии. Убедитесь что на фото четко видно лицо.")
                 
         except Exception as e:
             raise Exception(f"Ошибка создания кодировки: {str(e)}")

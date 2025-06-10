@@ -145,10 +145,7 @@ class FaceRecognitionApp:
             self.root.after(30, self.process_frame)
             return
         
-        # Отражаем кадр по горизонтали (как в зеркале)
-        frame = cv2.flip(frame, 1)
-        
-        # Уменьшаем размер кадра для ускорения распознавания
+        # Уменьшаем размер кадра для ускорения распознавания (как в рабочем коде)
         small_frame = cv2.resize(frame, (0, 0), fx=0.25, fy=0.25)
         rgb_small_frame = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB)
         
@@ -156,41 +153,43 @@ class FaceRecognitionApp:
         face_locations = face_recognition.face_locations(rgb_small_frame)
         face_encodings = face_recognition.face_encodings(rgb_small_frame, face_locations)
         
+        recognized_user = None
+        
         # Обработка найденных лиц
         for face_encoding, face_location in zip(face_encodings, face_locations):
             # Сравнение с известными лицами
-            matches = face_recognition.compare_faces(self.known_encodings, face_encoding)
-            face_distances = face_recognition.face_distance(self.known_encodings, face_encoding)
-            
-            name = "Неизвестный"
-            user_id = None
-            
-            # Если найдено совпадение
-            if True in matches:
+            if self.known_encodings:  # Проверяем что есть кодировки
+                matches = face_recognition.compare_faces(self.known_encodings, face_encoding)
+                face_distances = face_recognition.face_distance(self.known_encodings, face_encoding)
+                
+                # Находим лучшее совпадение (как в рабочем коде)
                 best_match_index = np.argmin(face_distances)
+                
+                # Проверяем совпадение по индексу
                 if matches[best_match_index]:
                     user_id = self.known_user_ids[best_match_index]
                     
                     # Получаем информацию о пользователе из БД
                     user_data = self.db.get_user(user_id)
                     if user_data:
+                        recognized_user = user_data
                         name = user_data[2]  # Имя пользователя
-                        self.update_user_info(user_data)
                     else:
-                        self.reset_user_info()
+                        name = "Ошибка БД"
+                else:
+                    name = "Неизвестный"
             else:
-                self.reset_user_info()
+                name = "Нет кодировок"
             
-            # Рисуем рамку вокруг лица
+            # Рисуем рамку вокруг лица (масштабируем координаты назад)
             top, right, bottom, left = face_location
-            # Масштабируем координаты обратно к оригинальному размеру
             top *= 4
             right *= 4
             bottom *= 4
             left *= 4
             
             # Цвет рамки: зеленый для известных, красный для неизвестных
-            color = (0, 255, 0) if user_id else (0, 0, 255)
+            color = (0, 255, 0) if recognized_user else (0, 0, 255)
             
             # Рисуем рамку
             cv2.rectangle(frame, (left, top), (right, bottom), color, 2)
@@ -199,8 +198,11 @@ class FaceRecognitionApp:
             cv2.rectangle(frame, (left, bottom - 35), (right, bottom), color, cv2.FILLED)
             cv2.putText(frame, name, (left + 6, bottom - 6), cv2.FONT_HERSHEY_DUPLEX, 0.6, (255, 255, 255), 1)
         
-        # Если лица не найдены, сбрасываем информацию
-        if not face_locations:
+        # Обновляем информацию о пользователе
+        if recognized_user:
+            self.update_user_info(recognized_user)
+        elif not face_locations:
+            # Сбрасываем только если лица вообще не найдены
             self.reset_user_info()
         
         # Конвертируем кадр для отображения в Tkinter
