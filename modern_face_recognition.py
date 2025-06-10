@@ -320,7 +320,7 @@ class ModernFaceRecognitionApp:
         list_controls.pack_propagate(False)
         
         # Кнопка обновления фото (первая)
-        update_photo_btn = tk.Button(list_controls, text="🔄 Фото", 
+        update_photo_btn = tk.Button(list_controls, text="🔄 Обновить фото", 
                                     font=("Arial", 9, "bold"), bg="#F59E0B", fg="white",
                                     relief="flat", padx=8, pady=6, command=self.update_user_photo)
         update_photo_btn.pack(side="left", padx=(0, 3))
@@ -332,7 +332,7 @@ class ModernFaceRecognitionApp:
         delete_btn.pack(side="left", padx=(0, 3))
         
         # Кнопка обновления списка (третья)
-        refresh_list_btn = tk.Button(list_controls, text="🔄 Список", 
+        refresh_list_btn = tk.Button(list_controls, text="🔄 Обновить список", 
                                     font=("Arial", 9, "bold"), bg="#6366F1", fg="white",
                                     relief="flat", padx=8, pady=6, command=self.refresh_user_list)
         refresh_list_btn.pack(side="left")
