@@ -59,8 +59,37 @@ class ModernFaceRecognitionApp:
                               font=("Arial", 18, "bold"), bg="#6B46C1", fg="white")
         title_label.pack(side="left")
         
-        # Основной контейнер
-        main_container = tk.Frame(self.root, bg="#6B46C1")
+        # Создание вкладок
+        style = ttk.Style()
+        style.theme_use('clam')
+        
+        # Настройка стиля вкладок
+        style.configure('Custom.TNotebook.Tab', 
+                       padding=[20, 10], 
+                       font=('Arial', 12, 'bold'))
+        
+        self.notebook = ttk.Notebook(self.root, style='Custom.TNotebook')
+        self.notebook.pack(fill="both", expand=True, padx=20, pady=(0, 20))
+        
+        # Вкладка распознавания
+        self.recognition_frame = tk.Frame(self.notebook, bg="#6B46C1")
+        self.notebook.add(self.recognition_frame, text="  🎥 Распознавание лиц  ")
+        
+        # Вкладка управления пользователями
+        self.management_frame = tk.Frame(self.notebook, bg="#6B46C1")
+        self.notebook.add(self.management_frame, text="  👥 Управление пользователями  ")
+        
+        # Настройка вкладки распознавания
+        self.setup_recognition_tab()
+        
+        # Настройка вкладки управления
+        self.setup_management_tab()
+    
+    def setup_recognition_tab(self):
+        # Настройка вкладки распознавания лиц
+        
+        # Основной контейнер для распознавания
+        main_container = tk.Frame(self.recognition_frame, bg="#6B46C1")
         main_container.pack(fill="both", expand=True, padx=20, pady=20)
         
         # Левая панель - Видео
@@ -101,147 +130,184 @@ class ModernFaceRecognitionApp:
                                     state="disabled")
         self.stop_button.pack(side="left")
         
-        # Правая панель - Информация и управление
+        # Правая панель - Информация о распознанном пользователе
         right_panel = tk.Frame(main_container, bg="white", relief="raised", bd=2, width=400)
         right_panel.pack(side="right", fill="y")
         right_panel.pack_propagate(False)
         
         # === СЕКЦИЯ РАСПОЗНАВАНИЯ ===
-        recognition_frame = tk.Frame(right_panel, bg="white")
-        recognition_frame.pack(fill="x", padx=15, pady=15)
+        recognition_info = tk.Frame(right_panel, bg="white")
+        recognition_info.pack(fill="both", expand=True, padx=20, pady=20)
         
         # Заголовок секции распознавания
-        rec_header = tk.Label(recognition_frame, text="РАСПОЗНАННЫЙ ПОЛЬЗОВАТЕЛЬ", 
-                             font=("Arial", 12, "bold"), bg="white", fg="#374151")
-        rec_header.pack(anchor="w", pady=(0, 10))
+        rec_header = tk.Label(recognition_info, text="РАСПОЗНАННЫЙ ПОЛЬЗОВАТЕЛЬ", 
+                             font=("Arial", 16, "bold"), bg="white", fg="#374151")
+        rec_header.pack(anchor="w", pady=(0, 20))
         
         # Статус распознавания
-        self.status_label = tk.Label(recognition_frame, text="Ожидание...", 
-                                    font=("Arial", 14, "bold"), bg="white", fg="#6B7280")
-        self.status_label.pack(anchor="w", pady=(0, 10))
+        self.status_label = tk.Label(recognition_info, text="Ожидание...", 
+                                    font=("Arial", 18, "bold"), bg="white", fg="#6B7280")
+        self.status_label.pack(anchor="w", pady=(0, 20))
         
         # Информация о пользователе
-        info_container = tk.Frame(recognition_frame, bg="#F9FAFB", relief="solid", bd=1)
-        info_container.pack(fill="x", pady=(0, 10))
+        info_container = tk.Frame(recognition_info, bg="#F9FAFB", relief="solid", bd=1)
+        info_container.pack(fill="x", pady=(0, 20))
         
         # ID пользователя
         id_frame = tk.Frame(info_container, bg="#F9FAFB")
-        id_frame.pack(fill="x", padx=10, pady=5)
+        id_frame.pack(fill="x", padx=15, pady=10)
         
-        tk.Label(id_frame, text="ID:", font=("Arial", 10, "bold"), bg="#F9FAFB", fg="#374151").pack(side="left")
-        self.user_id_label = tk.Label(id_frame, text="—", font=("Arial", 10), bg="#F9FAFB", fg="#6B7280")
+        tk.Label(id_frame, text="ID пользователя:", font=("Arial", 12, "bold"), bg="#F9FAFB", fg="#374151").pack(side="left")
+        self.user_id_label = tk.Label(id_frame, text="—", font=("Arial", 12), bg="#F9FAFB", fg="#6B7280")
         self.user_id_label.pack(side="right")
         
         # Имя пользователя
         name_frame = tk.Frame(info_container, bg="#F9FAFB")
-        name_frame.pack(fill="x", padx=10, pady=5)
+        name_frame.pack(fill="x", padx=15, pady=10)
         
-        tk.Label(name_frame, text="Имя:", font=("Arial", 10, "bold"), bg="#F9FAFB", fg="#374151").pack(side="left")
-        self.name_label = tk.Label(name_frame, text="—", font=("Arial", 10), bg="#F9FAFB", fg="#6B7280")
+        tk.Label(name_frame, text="Имя:", font=("Arial", 12, "bold"), bg="#F9FAFB", fg="#374151").pack(side="left")
+        self.name_label = tk.Label(name_frame, text="—", font=("Arial", 12), bg="#F9FAFB", fg="#6B7280")
         self.name_label.pack(side="right")
         
         # Фотография пользователя
-        photo_frame = tk.Frame(recognition_frame, bg="white")
-        photo_frame.pack(fill="x", pady=(0, 10))
+        photo_frame = tk.Frame(recognition_info, bg="white")
+        photo_frame.pack(fill="x", pady=(0, 20))
         
-        tk.Label(photo_frame, text="Фотография:", font=("Arial", 10, "bold"), 
-                bg="white", fg="#374151").pack(anchor="w")
+        tk.Label(photo_frame, text="Фотография:", font=("Arial", 12, "bold"), 
+                bg="white", fg="#374151").pack(anchor="w", pady=(0, 10))
         
         self.photo_display = tk.Label(photo_frame, text="Нет фото", bg="#F3F4F6", 
-                                     width=20, height=8, relief="solid", bd=1)
-        self.photo_display.pack(pady=5)
+                                     width=25, height=12, relief="solid", bd=1)
+        self.photo_display.pack()
         
-        # === РАЗДЕЛИТЕЛЬ ===
-        separator = tk.Frame(right_panel, bg="#E5E7EB", height=2)
-        separator.pack(fill="x", padx=15, pady=10)
+        # Кнопка обновления кодировок
+        refresh_btn = tk.Button(recognition_info, text="🔄 Обновить кодировки", 
+                               font=("Arial", 12, "bold"), bg="#6366F1", fg="white",
+                               relief="flat", padx=20, pady=10, command=self.load_encodings)
+        refresh_btn.pack(fill="x", pady=(20, 0))
+    
+    def setup_management_tab(self):
+        # Настройка вкладки управления пользователями
         
-        # === СЕКЦИЯ ДОБАВЛЕНИЯ ПОЛЬЗОВАТЕЛЯ ===
-        add_user_frame = tk.Frame(right_panel, bg="white")
-        add_user_frame.pack(fill="x", padx=15, pady=15)
+        # Основной контейнер для управления
+        main_container = tk.Frame(self.management_frame, bg="#6B46C1")
+        main_container.pack(fill="both", expand=True, padx=20, pady=20)
         
-        # Заголовок секции добавления
-        add_header = tk.Label(add_user_frame, text="ДОБАВИТЬ ПОЛЬЗОВАТЕЛЯ", 
-                             font=("Arial", 12, "bold"), bg="white", fg="#374151")
-        add_header.pack(anchor="w", pady=(0, 15))
+        # Левая панель - Добавление пользователя
+        left_panel = tk.Frame(main_container, bg="white", relief="raised", bd=2)
+        left_panel.pack(side="left", fill="both", expand=True, padx=(0, 10))
+        
+        # Заголовок левой панели
+        add_header_frame = tk.Frame(left_panel, bg="#7C3AED", height=50)
+        add_header_frame.pack(fill="x")
+        add_header_frame.pack_propagate(False)
+        
+        add_title = tk.Label(add_header_frame, text="ДОБАВИТЬ ПОЛЬЗОВАТЕЛЯ", 
+                            font=("Arial", 14, "bold"), bg="#7C3AED", fg="white")
+        add_title.pack(expand=True)
+        
+        # Контент добавления пользователя
+        add_content = tk.Frame(left_panel, bg="white")
+        add_content.pack(fill="both", expand=True, padx=20, pady=20)
         
         # Поле ID пользователя
-        id_input_frame = tk.Frame(add_user_frame, bg="white")
-        id_input_frame.pack(fill="x", pady=(0, 10))
+        id_input_frame = tk.Frame(add_content, bg="white")
+        id_input_frame.pack(fill="x", pady=(0, 15))
         
-        tk.Label(id_input_frame, text="ID пользователя:", font=("Arial", 10, "bold"), 
+        tk.Label(id_input_frame, text="ID пользователя:", font=("Arial", 12, "bold"), 
                 bg="white", fg="#374151").pack(anchor="w")
-        self.user_id_entry = tk.Entry(id_input_frame, font=("Arial", 11), relief="solid", bd=1)
-        self.user_id_entry.pack(fill="x", pady=(5, 0))
+        self.user_id_entry = tk.Entry(id_input_frame, font=("Arial", 12), relief="solid", bd=1)
+        self.user_id_entry.pack(fill="x", pady=(5, 0), ipady=5)  # ipady для высоты
         
         # Поле имени пользователя
-        name_input_frame = tk.Frame(add_user_frame, bg="white")
-        name_input_frame.pack(fill="x", pady=(0, 10))
+        name_input_frame = tk.Frame(add_content, bg="white")
+        name_input_frame.pack(fill="x", pady=(0, 15))
         
-        tk.Label(name_input_frame, text="Имя:", font=("Arial", 10, "bold"), 
+        tk.Label(name_input_frame, text="Имя пользователя:", font=("Arial", 12, "bold"), 
                 bg="white", fg="#374151").pack(anchor="w")
-        self.name_entry = tk.Entry(name_input_frame, font=("Arial", 11), relief="solid", bd=1)
-        self.name_entry.pack(fill="x", pady=(5, 0))
+        self.name_entry = tk.Entry(name_input_frame, font=("Arial", 12), relief="solid", bd=1)
+        self.name_entry.pack(fill="x", pady=(5, 0), ipady=5)  # ipady для высоты
         
         # Выбор фотографии
-        photo_input_frame = tk.Frame(add_user_frame, bg="white")
-        photo_input_frame.pack(fill="x", pady=(0, 10))
+        photo_input_frame = tk.Frame(add_content, bg="white")
+        photo_input_frame.pack(fill="x", pady=(0, 15))
         
-        tk.Label(photo_input_frame, text="Фотография:", font=("Arial", 10, "bold"), 
-                bg="white", fg="#374151").pack(anchor="w")
+        tk.Label(photo_input_frame, text="Фотография:", font=("Arial", 12, "bold"), 
+                bg="white", fg="#374151").pack(anchor="w", pady=(0, 10))
+        
+        # Превью фотографии
+        self.photo_preview = tk.Label(photo_input_frame, text="Превью фотографии", bg="#F3F4F6", 
+                                     width=30, height=15, relief="solid", bd=1)
+        self.photo_preview.pack(pady=(0, 10))
         
         photo_select_frame = tk.Frame(photo_input_frame, bg="white")
-        photo_select_frame.pack(fill="x", pady=(5, 0))
+        photo_select_frame.pack(fill="x")
         
-        select_photo_btn = tk.Button(photo_select_frame, text="📁 Выбрать фото", 
-                                    font=("Arial", 10), bg="#6366F1", fg="white",
-                                    relief="flat", padx=15, pady=5, command=self.select_photo)
-        select_photo_btn.pack(side="left")
+        select_photo_btn = tk.Button(photo_select_frame, text="📁 Выбрать фотографию", 
+                                    font=("Arial", 11, "bold"), bg="#6366F1", fg="white",
+                                    relief="flat", padx=15, pady=8, command=self.select_photo)
+        select_photo_btn.pack(fill="x")
         
-        self.photo_status_label = tk.Label(photo_select_frame, text="Фото не выбрано", 
-                                          font=("Arial", 9), bg="white", fg="#6B7280")
-        self.photo_status_label.pack(side="left", padx=(10, 0))
+        self.photo_status_label = tk.Label(photo_input_frame, text="Фото не выбрано", 
+                                          font=("Arial", 10), bg="white", fg="#6B7280")
+        self.photo_status_label.pack(pady=(10, 0))
         
-        # Кнопки действий
-        actions_frame = tk.Frame(add_user_frame, bg="white")
-        actions_frame.pack(fill="x", pady=(15, 0))
+        # Кнопка добавления
+        add_btn = tk.Button(add_content, text="➕ Добавить пользователя", 
+                           font=("Arial", 14, "bold"), bg="#10B981", fg="white",
+                           relief="flat", padx=20, pady=12, command=self.add_user)
+        add_btn.pack(fill="x", pady=(20, 0))
         
-        add_btn = tk.Button(actions_frame, text="➕ Добавить пользователя", 
-                           font=("Arial", 11, "bold"), bg="#10B981", fg="white",
-                           relief="flat", padx=20, pady=8, command=self.add_user)
-        add_btn.pack(fill="x", pady=(0, 5))
+        # Правая панель - Список пользователей
+        right_panel = tk.Frame(main_container, bg="white", relief="raised", bd=2, width=450)
+        right_panel.pack(side="right", fill="y")
+        right_panel.pack_propagate(False)
         
-        refresh_btn = tk.Button(actions_frame, text="🔄 Обновить кодировки", 
-                               font=("Arial", 10), bg="#6366F1", fg="white",
-                               relief="flat", padx=20, pady=6, command=self.load_encodings)
-        refresh_btn.pack(fill="x")
+        # Заголовок правой панели
+        list_header_frame = tk.Frame(right_panel, bg="#7C3AED", height=50)
+        list_header_frame.pack(fill="x")
+        list_header_frame.pack_propagate(False)
         
-        # === СПИСОК ПОЛЬЗОВАТЕЛЕЙ ===
-        users_frame = tk.Frame(right_panel, bg="white")
-        users_frame.pack(fill="both", expand=True, padx=15, pady=(0, 15))
+        list_title = tk.Label(list_header_frame, text="СПИСОК ПОЛЬЗОВАТЕЛЕЙ", 
+                             font=("Arial", 14, "bold"), bg="#7C3AED", fg="white")
+        list_title.pack(expand=True)
         
-        users_header = tk.Label(users_frame, text="СПИСОК ПОЛЬЗОВАТЕЛЕЙ", 
-                               font=("Arial", 12, "bold"), bg="white", fg="#374151")
-        users_header.pack(anchor="w", pady=(0, 10))
+        # Контент списка пользователей
+        list_content = tk.Frame(right_panel, bg="white")
+        list_content.pack(fill="both", expand=True, padx=15, pady=15)
         
         # Таблица пользователей
-        columns = ("ID", "Имя")
-        self.users_tree = ttk.Treeview(users_frame, columns=columns, show="headings", height=6)
+        columns = ("ID", "Имя", "Фото")
+        self.users_tree = ttk.Treeview(list_content, columns=columns, show="headings", height=15)
         
         for col in columns:
             self.users_tree.heading(col, text=col)
-            self.users_tree.column(col, width=120)
+            if col == "ID":
+                self.users_tree.column(col, width=100)
+            elif col == "Имя":
+                self.users_tree.column(col, width=150)
+            else:
+                self.users_tree.column(col, width=120)
         
-        scrollbar = ttk.Scrollbar(users_frame, orient="vertical", command=self.users_tree.yview)
+        scrollbar = ttk.Scrollbar(list_content, orient="vertical", command=self.users_tree.yview)
         self.users_tree.configure(yscrollcommand=scrollbar.set)
         
         self.users_tree.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
         
-        # Кнопка удаления
-        delete_btn = tk.Button(users_frame, text="🗑 Удалить выбранного", 
-                              font=("Arial", 10), bg="#EF4444", fg="white",
-                              relief="flat", padx=15, pady=5, command=self.delete_user)
-        delete_btn.pack(pady=(10, 0))
+        # Кнопки управления списком
+        list_controls = tk.Frame(list_content, bg="white")
+        list_controls.pack(fill="x", pady=(15, 0))
+        
+        delete_btn = tk.Button(list_controls, text="🗑 Удалить выбранного", 
+                              font=("Arial", 11, "bold"), bg="#EF4444", fg="white",
+                              relief="flat", padx=15, pady=8, command=self.delete_user)
+        delete_btn.pack(side="left", padx=(0, 10))
+        
+        refresh_list_btn = tk.Button(list_controls, text="🔄 Обновить список", 
+                                    font=("Arial", 11, "bold"), bg="#6366F1", fg="white",
+                                    relief="flat", padx=15, pady=8, command=self.refresh_user_list)
+        refresh_list_btn.pack(side="left")
         
         # Загружаем список пользователей
         self.refresh_user_list()
@@ -404,7 +470,23 @@ class ModernFaceRecognitionApp:
         
         if file_path:
             self.photo_path = file_path
-            self.photo_status_label.config(text=f"✓ {os.path.basename(file_path)}", fg="#10B981")
+            filename = os.path.basename(file_path)
+            self.photo_status_label.config(text=f"✓ {filename}", fg="#10B981")
+            
+            # Показываем превью фотографии
+            try:
+                pil_image = Image.open(file_path)
+                # Изменяем размер для превью
+                pil_image = pil_image.resize((200, 200), Image.Resampling.LANCZOS)
+                photo_preview = ImageTk.PhotoImage(pil_image)
+                
+                # Отображаем превью
+                self.photo_preview.config(image=photo_preview, text="")
+                self.photo_preview.image = photo_preview  # Сохраняем ссылку
+                
+            except Exception as e:
+                print(f"Ошибка загрузки превью: {e}")
+                self.photo_preview.config(image="", text="Ошибка загрузки превью")
     
     def add_user(self):
         # Добавление нового пользователя
@@ -434,6 +516,9 @@ class ModernFaceRecognitionApp:
                 self.name_entry.delete(0, tk.END)
                 self.photo_path = ""
                 self.photo_status_label.config(text="Фото не выбрано", fg="#6B7280")
+                
+                # Очищаем превью
+                self.photo_preview.config(image="", text="Превью фотографии")
                 
                 # Обновляем данные
                 self.refresh_user_list()
@@ -490,7 +575,8 @@ class ModernFaceRecognitionApp:
         
         users = self.db.get_all_users()
         for user in users:
-            self.users_tree.insert("", "end", values=(user[1], user[2]))
+            photo_name = os.path.basename(user[3]) if user[3] else "Нет"
+            self.users_tree.insert("", "end", values=(user[1], user[2], photo_name))
     
     def on_closing(self):
         # Обработка закрытия окна
