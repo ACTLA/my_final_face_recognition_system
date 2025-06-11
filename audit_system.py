@@ -297,20 +297,20 @@ class AuditTab:
         
         log_title = tk.Label(log_header, text="ЖУРНАЛ СОБЫТИЙ", 
                            font=("Arial", 12, "bold"), bg="#7C3AED", fg="white")
-        log_title.pack(side="left", expand=True)  # Слева с расширением как у статистики
+        log_title.pack(side="left", expand=True)
         
         # Кнопки управления справа
         export_btn = tk.Button(log_header, text="📥 Экспорт CSV", 
                              font=("Arial", 10, "bold"), bg="#10B981", fg="white",
                              relief="flat", padx=15, pady=6, command=self.export_csv)
-        export_btn.pack(side="right", padx=(5, 15))  # Справа с отступом
+        export_btn.pack(side="right", padx=(5, 15))
         
         refresh_btn = tk.Button(log_header, text="🔄 Обновить", 
                               font=("Arial", 10, "bold"), bg="#6366F1", fg="white",
                               relief="flat", padx=15, pady=6, command=self.refresh_data)
-        refresh_btn.pack(side="right", padx=5)  # Справа перед экспортом
+        refresh_btn.pack(side="right", padx=5)
         
-        # Таблица событий (теперь занимает большую часть экрана)
+        # Таблица событий
         log_content = tk.Frame(log_container, bg="white")
         log_content.pack(fill="both", expand=True, padx=10, pady=10)
         
@@ -344,10 +344,6 @@ class AuditTab:
         
         # Загружаем начальные данные
         self.refresh_data()
-    
-    def create_stat_card(self, parent, title, value, color):
-        """Создание карточки со статистикой (не используется в новой версии)"""
-        pass
     
     def refresh_data(self):
         """Обновление всех данных на вкладке"""
@@ -386,10 +382,6 @@ class AuditTab:
         self.successful_label.config(text=str(successful))
         self.success_rate_label.config(text=f"{success_rate:.1f}%")
         self.last_activity_label.config(text=last_activity)
-    
-    def update_charts(self, stats):
-        """Обновление графиков (удалено)"""
-        pass
     
     def update_events_table(self, stats):
         """Обновление таблицы событий"""
@@ -463,6 +455,10 @@ class AuditIntegration:
         # Создаем логгер аудита
         app_instance.audit = AuditLogger()
         
+        # Добавляем переменные для таймера и времени последнего распознавания
+        app_instance.last_recognition_time = None
+        app_instance.last_recognition_timer = None
+        
         # Добавляем новую вкладку
         app_instance.audit_tab = AuditTab(app_instance.notebook, app_instance.audit)
         
@@ -476,7 +472,7 @@ class AuditIntegration:
         app_instance._original_update_user_photo = app_instance.update_user_photo
         
         # Заменяем методы на версии с логированием
-        app_instance.process_frame = lambda: AuditIntegration._process_frame_with_audit(app_instance)
+        app_instance.process_frame = lambda: AuditIntegration._process_frame_with_audit_and_delays(app_instance)
         app_instance.add_user = lambda: AuditIntegration._add_user_with_audit(app_instance)
         app_instance.delete_user = lambda: AuditIntegration._delete_user_with_audit(app_instance)
         app_instance.start_camera = lambda: AuditIntegration._start_camera_with_audit(app_instance)
@@ -491,9 +487,8 @@ class AuditIntegration:
         return app_instance
     
     @staticmethod
-    def _process_frame_with_audit(app_instance):
-        """Версия process_frame с логированием"""
-        # Вызываем оригинальный метод
+    def _process_frame_with_audit_and_delays(app_instance):
+        """Версия process_frame с логированием и задержками"""
         if not app_instance.is_running or not app_instance.cap:
             return
         
@@ -512,53 +507,64 @@ class AuditIntegration:
         face_encodings = face_recognition.face_encodings(rgb_small_frame, face_locations)
         
         recognized_user = None
+        current_time = datetime.datetime.now()
         
-        # Обработка найденных лиц
-        for face_encoding, face_location in zip(face_encodings, face_locations):
-            if app_instance.known_encodings:
-                matches = face_recognition.compare_faces(app_instance.known_encodings, face_encoding)
-                face_distances = face_recognition.face_distance(app_instance.known_encodings, face_encoding)
-                
-                best_match_index = np.argmin(face_distances)
-                confidence = 1 - face_distances[best_match_index]  # Преобразуем расстояние в уверенность
-                
-                if matches[best_match_index]:
-                    user_id = app_instance.known_user_ids[best_match_index]
-                    user_data = app_instance.db.get_user(user_id)
-                    if user_data:
-                        recognized_user = user_data
-                        name = user_data[2]
-                        # 🆕 ЛОГИРУЕМ УСПЕШНОЕ РАСПОЗНАВАНИЕ
-                        app_instance.audit.log_recognition(user_id, True, confidence)
+        # Проверяем задержку распознавания (3 секунды)
+        if (app_instance.last_recognition_time and 
+            (current_time - app_instance.last_recognition_time).total_seconds() < 3):
+            # Еще не прошло 3 секунды с последнего распознавания
+            pass
+        else:
+            # Обработка найденных лиц
+            for face_encoding, face_location in zip(face_encodings, face_locations):
+                if app_instance.known_encodings:
+                    matches = face_recognition.compare_faces(app_instance.known_encodings, face_encoding)
+                    face_distances = face_recognition.face_distance(app_instance.known_encodings, face_encoding)
+                    
+                    best_match_index = np.argmin(face_distances)
+                    confidence = 1 - face_distances[best_match_index]
+                    
+                    if matches[best_match_index]:
+                        user_id = app_instance.known_user_ids[best_match_index]
+                        user_data = app_instance.db.get_user(user_id)
+                        if user_data:
+                            recognized_user = user_data
+                            name = user_data[2]
+                            # 🆕 ЛОГИРУЕМ УСПЕШНОЕ РАСПОЗНАВАНИЕ
+                            app_instance.audit.log_recognition(user_id, True, confidence)
+                            app_instance.last_recognition_time = current_time
+                            
+                            # Запускаем таймер очистки через 2 секунды
+                            if app_instance.last_recognition_timer:
+                                app_instance.root.after_cancel(app_instance.last_recognition_timer)
+                            app_instance.last_recognition_timer = app_instance.root.after(2000, app_instance.reset_user_info)
+                            
+                        else:
+                            name = "Ошибка БД"
+                            app_instance.audit.log_recognition(None, False, confidence)
                     else:
-                        name = "Ошибка БД"
-                        # 🆕 ЛОГИРУЕМ ОШИБКУ БД
+                        name = "Неизвестный"
                         app_instance.audit.log_recognition(None, False, confidence)
                 else:
-                    name = "Неизвестный"
-                    # 🆕 ЛОГИРУЕМ НЕИЗВЕСТНОГО ПОЛЬЗОВАТЕЛЯ
-                    app_instance.audit.log_recognition(None, False, confidence)
-            else:
-                name = "Нет кодировок"
-            
-            # Рисуем рамку вокруг лица
-            top, right, bottom, left = face_location
-            top *= 4
-            right *= 4
-            bottom *= 4
-            left *= 4
-            
-            color = (0, 255, 0) if recognized_user else (0, 0, 255)
-            
-            cv2.rectangle(frame, (left, top), (right, bottom), color, 2)
-            cv2.rectangle(frame, (left, bottom - 35), (right, bottom), color, cv2.FILLED)
-            cv2.putText(frame, name, (left + 6, bottom - 6), cv2.FONT_HERSHEY_DUPLEX, 0.6, (255, 255, 255), 1)
+                    name = "Нет кодировок"
+                
+                # Рисуем рамку вокруг лица
+                top, right, bottom, left = face_location
+                top *= 4; right *= 4; bottom *= 4; left *= 4
+                
+                color = (0, 255, 0) if recognized_user else (0, 0, 255)
+                
+                cv2.rectangle(frame, (left, top), (right, bottom), color, 2)
+                cv2.rectangle(frame, (left, bottom - 35), (right, bottom), color, cv2.FILLED)
+                cv2.putText(frame, name, (left + 6, bottom - 6), cv2.FONT_HERSHEY_DUPLEX, 0.6, (255, 255, 255), 1)
         
         # Обновляем информацию о пользователе
         if recognized_user:
             app_instance.update_user_info(recognized_user)
         elif not face_locations:
-            app_instance.reset_user_info()
+            # Только сбрасываем если нет лиц И нет активного таймера
+            if not app_instance.last_recognition_timer:
+                app_instance.reset_user_info()
         
         # Конвертируем кадр для отображения в Tkinter
         rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -785,3 +791,4 @@ if __name__ == "__main__":
     root.protocol("WM_DELETE_WINDOW", app.on_closing)
     root.mainloop()
 """
+                
