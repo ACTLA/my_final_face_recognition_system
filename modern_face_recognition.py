@@ -133,12 +133,12 @@ class ModernFaceRecognitionApp:
         camera_controls.pack(fill="x", padx=10, pady=(0, 10))
         camera_controls.pack_propagate(False)
         
-        self.start_button = tk.Button(camera_controls, text="▶ Запуск", 
+        self.start_button = tk.Button(camera_controls, text="Запуск", 
                                      font=("Arial", 10, "bold"), bg="#10B981", fg="white",
                                      relief="flat", padx=15, pady=6, command=self.start_camera)
         self.start_button.pack(side="left", padx=(0, 5))
         
-        self.stop_button = tk.Button(camera_controls, text="⏹ Стоп", 
+        self.stop_button = tk.Button(camera_controls, text="Стоп", 
                                     font=("Arial", 10, "bold"), bg="#EF4444", fg="white",
                                     relief="flat", padx=15, pady=6, command=self.stop_camera,
                                     state="disabled")
@@ -262,7 +262,7 @@ class ModernFaceRecognitionApp:
         self.photo_preview.pack(fill="both", expand=True)
         
         # Кнопка выбора фото
-        select_photo_btn = tk.Button(photo_input_frame, text="📁 Выбрать фото", 
+        select_photo_btn = tk.Button(photo_input_frame, text="Выбрать фото", 
                                     font=("Arial", 9, "bold"), bg="#6366F1", fg="white",
                                     relief="flat", padx=10, pady=5, command=self.select_photo)
         select_photo_btn.pack(fill="x")
@@ -277,7 +277,7 @@ class ModernFaceRecognitionApp:
         actions_frame.pack(fill="x", pady=(10, 0))
         
         # Основная кнопка добавления
-        add_btn = tk.Button(actions_frame, text="➕ Добавить пользователя", 
+        add_btn = tk.Button(actions_frame, text="Добавить пользователя", 
                            font=("Arial", 10, "bold"), bg="#10B981", fg="white",
                            relief="flat", padx=15, pady=8, command=self.add_user)
         add_btn.pack(fill="x")
@@ -326,19 +326,19 @@ class ModernFaceRecognitionApp:
         list_controls.pack_propagate(False)
         
         # Кнопка обновления фото (первая)
-        update_photo_btn = tk.Button(list_controls, text="🔄 Обновить фото", 
+        update_photo_btn = tk.Button(list_controls, text="Обновить фото", 
                                     font=("Arial", 9, "bold"), bg="#F59E0B", fg="white",
                                     relief="flat", padx=8, pady=6, command=self.update_user_photo)
         update_photo_btn.pack(side="left", padx=(0, 3))
         
         # Кнопка удаления (вторая)
-        delete_btn = tk.Button(list_controls, text="🗑 Удалить", 
+        delete_btn = tk.Button(list_controls, text="Удалить", 
                               font=("Arial", 9, "bold"), bg="#EF4444", fg="white",
                               relief="flat", padx=8, pady=6, command=self.delete_user)
         delete_btn.pack(side="left", padx=(0, 3))
         
         # Кнопка обновления списка (третья)
-        refresh_list_btn = tk.Button(list_controls, text="🔄 Обновить список", 
+        refresh_list_btn = tk.Button(list_controls, text="Обновить список", 
                                     font=("Arial", 9, "bold"), bg="#6366F1", fg="white",
                                     relief="flat", padx=8, pady=6, command=self.refresh_user_list)
         refresh_list_btn.pack(side="left")
@@ -658,7 +658,7 @@ class ModernFaceRecognitionApp:
                 if self.audit:
                     self.audit.log_user_action("added", user_id, True)
                 
-                messagebox.showinfo("Успех", "✅ Пользователь добавлен!")
+                messagebox.showinfo("Успех", "Пользователь добавлен!")
                 
                 # Очищаем поля
                 self.user_id_entry.delete(0, tk.END)
@@ -744,7 +744,7 @@ class ModernFaceRecognitionApp:
                     if self.audit:
                         self.audit.log_user_action("photo_updated", user_id, True)
                     
-                    messagebox.showinfo("Успех", "✅ Фото пользователя обновлено!")
+                    messagebox.showinfo("Успех", "Фото пользователя обновлено!")
                     
                     # Очищаем выбранное фото
                     self.photo_path = ""
@@ -783,7 +783,7 @@ class ModernFaceRecognitionApp:
                 if self.audit:
                     self.audit.log_user_action("deleted", user_id, True)
                 
-                messagebox.showinfo("Успех", "✅ Пользователь удален!")
+                messagebox.showinfo("Успех", "Пользователь удален!")
                 self.refresh_user_list()
                 self.load_encodings()
             else:

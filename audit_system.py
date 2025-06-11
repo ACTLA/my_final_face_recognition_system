@@ -302,7 +302,7 @@ class AuditTab:
         log_title.pack(side="left", expand=True)
         
         # Кнопки управления справа
-        export_btn = tk.Button(log_header, text="📥 Экспорт CSV", 
+        export_btn = tk.Button(log_header, text="Экспорт CSV", 
                              font=("Arial", 10, "bold"), bg="#10B981", fg="white",
                              relief="flat", padx=15, pady=6, command=self.export_csv)
         export_btn.pack(side="right", padx=(5, 15))
