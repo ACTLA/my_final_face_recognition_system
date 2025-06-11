@@ -7,6 +7,7 @@ import shutil
 import numpy as np
 from PIL import Image, ImageTk
 from database import DatabaseManager
+import datetime
 
 class ModernFaceRecognitionApp:
     def __init__(self, root):
@@ -32,6 +33,12 @@ class ModernFaceRecognitionApp:
         
         # 🆕 Переменная для системы аудита (будет установлена при интеграции)
         self.audit = None
+        
+        # 🆕 Переменные для контроля задержек распознавания
+        self.last_recognition_time = None
+        self.last_recognition_timer = None
+        self.recognition_delay = 3  # Задержка между распознаваниями (секунды)
+        self.info_display_duration = 2  # Время показа информации (секунды)
         
         # Создание папки для фотографий если её нет
         if not os.path.exists("photos"):
@@ -397,10 +404,17 @@ class ModernFaceRecognitionApp:
             messagebox.showerror("Ошибка", f"Ошибка запуска камеры: {str(e)}")
     
     def stop_camera(self):
-        # 🆕 Остановка камеры С ЛОГИРОВАНИЕМ
+        # 🆕 Остановка камеры с очисткой таймеров
         self.is_running = False
         if self.cap:
             self.cap.release()
+        
+        # 🆕 Очищаем все таймеры при остановке камеры
+        if self.last_recognition_timer:
+            self.root.after_cancel(self.last_recognition_timer)
+            self.last_recognition_timer = None
+        
+        self.last_recognition_time = None
         
         self.start_button.config(state="normal")
         self.stop_button.config(state="disabled")
@@ -413,7 +427,7 @@ class ModernFaceRecognitionApp:
             self.audit.log_system_event("camera_stop", "success")
     
     def process_frame(self):
-        # Обработка каждого кадра с камеры
+        """🆕 Обработка каждого кадра с камеры С ЗАДЕРЖКАМИ"""
         if not self.is_running or not self.cap:
             return
         
@@ -432,10 +446,19 @@ class ModernFaceRecognitionApp:
         face_encodings = face_recognition.face_encodings(rgb_small_frame, face_locations)
         
         recognized_user = None
+        current_time = datetime.datetime.now()
+        
+        # 🆕 ПРОВЕРЯЕМ ЗАДЕРЖКУ РАСПОЗНАВАНИЯ (3 СЕКУНДЫ)
+        can_recognize = True
+        if (self.last_recognition_time and 
+            (current_time - self.last_recognition_time).total_seconds() < self.recognition_delay):
+            can_recognize = False
         
         # Обработка найденных лиц
         for face_encoding, face_location in zip(face_encodings, face_locations):
-            if self.known_encodings:
+            name = "Обработка..."  # По умолчанию
+            
+            if can_recognize and self.known_encodings:
                 matches = face_recognition.compare_faces(self.known_encodings, face_encoding)
                 face_distances = face_recognition.face_distance(self.known_encodings, face_encoding)
                 
@@ -448,21 +471,36 @@ class ModernFaceRecognitionApp:
                     if user_data:
                         recognized_user = user_data
                         name = user_data[2]
+                        
                         # 📊 ЛОГИРУЕМ УСПЕШНОЕ РАСПОЗНАВАНИЕ
                         if self.audit:
                             self.audit.log_recognition(user_id, True, confidence)
+                        
+                        # 🆕 ОБНОВЛЯЕМ ВРЕМЯ ПОСЛЕДНЕГО РАСПОЗНАВАНИЯ
+                        self.last_recognition_time = current_time
+                        
+                        # 🆕 ЗАПУСКАЕМ ТАЙМЕР ОЧИСТКИ ЧЕРЕЗ 2 СЕКУНДЫ
+                        if self.last_recognition_timer:
+                            self.root.after_cancel(self.last_recognition_timer)
+                        self.last_recognition_timer = self.root.after(
+                            self.info_display_duration * 1000, 
+                            self.reset_user_info
+                        )
+                        
                     else:
                         name = "Ошибка БД"
-                        # 📊 ЛОГИРУЕМ ОШИБКУ РАСПОЗНАВАНИЯ
                         if self.audit:
                             self.audit.log_recognition(None, False, confidence)
                 else:
                     name = "Неизвестный"
-                    # 📊 ЛОГИРУЕМ НЕУДАЧНОЕ РАСПОЗНАВАНИЕ
                     if self.audit:
                         self.audit.log_recognition(None, False, confidence)
-            else:
+            elif not self.known_encodings:
                 name = "Нет кодировок"
+            elif not can_recognize:
+                # 🆕 Показываем что идет задержка
+                time_left = self.recognition_delay - (current_time - self.last_recognition_time).total_seconds()
+                name = f"Ожидание {time_left:.1f}с"
             
             # Рисуем рамку вокруг лица
             top, right, bottom, left = face_location
@@ -471,17 +509,25 @@ class ModernFaceRecognitionApp:
             bottom *= 4
             left *= 4
             
-            color = (0, 255, 0) if recognized_user else (0, 0, 255)
+            # 🆕 Цвет рамки зависит от состояния
+            if recognized_user:
+                color = (0, 255, 0)  # Зеленый - распознан
+            elif not can_recognize:
+                color = (255, 165, 0)  # Оранжевый - ожидание
+            else:
+                color = (0, 0, 255)  # Красный - не распознан
             
             cv2.rectangle(frame, (left, top), (right, bottom), color, 2)
             cv2.rectangle(frame, (left, bottom - 35), (right, bottom), color, cv2.FILLED)
             cv2.putText(frame, name, (left + 6, bottom - 6), cv2.FONT_HERSHEY_DUPLEX, 0.6, (255, 255, 255), 1)
         
-        # Обновляем информацию о пользователе
+        # 🆕 ОБНОВЛЯЕМ ИНФОРМАЦИЮ О ПОЛЬЗОВАТЕЛЕ ТОЛЬКО ПРИ НОВОМ РАСПОЗНАВАНИИ
         if recognized_user:
             self.update_user_info(recognized_user)
         elif not face_locations:
-            self.reset_user_info()
+            # Сбрасываем информацию только если нет лиц И нет активного таймера
+            if not self.last_recognition_timer:
+                self.reset_user_info()
         
         # Конвертируем кадр для отображения в Tkinter
         rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -494,12 +540,14 @@ class ModernFaceRecognitionApp:
         self.root.after(30, self.process_frame)
     
     def update_user_info(self, user_data):
-        # Обновление информации о распознанном пользователе
+        """🆕 Обновление информации о распознанном пользователе С ВРЕМЕННОЙ МЕТКОЙ"""
         user_id = user_data[1]
         name = user_data[2]
         photo_path = user_data[3]
         
-        self.status_label.config(text="✅ Пользователь распознан", fg="#10B981")
+        # 🆕 Показываем статус с временной меткой
+        current_time = datetime.datetime.now().strftime('%H:%M:%S')
+        self.status_label.config(text=f"✅ Распознан в {current_time}", fg="#10B981")
         self.user_id_label.config(text=user_id)
         self.name_label.config(text=name)
         
@@ -526,11 +574,15 @@ class ModernFaceRecognitionApp:
                                     font=("Arial", 9), fg="#6B7280")
     
     def reset_user_info(self):
-        # Сброс информации о пользователе
+        """🆕 Сброс информации о пользователе С ОЧИСТКОЙ ТАЙМЕРА"""
         self.status_label.config(text="⏳ Ожидание...", fg="#6B7280")
         self.user_id_label.config(text="—")
         self.name_label.config(text="—")
         self.photo_display.config(image="", text="Нет фото", font=("Arial", 10), fg="#6B7280")
+        
+        # 🆕 Очищаем таймер
+        if self.last_recognition_timer:
+            self.last_recognition_timer = None
     
     def select_photo(self):
         # Выбор фотографии пользователя
@@ -730,8 +782,13 @@ class ModernFaceRecognitionApp:
             self.users_tree.insert("", "end", values=(user[1], user[2], photo_name))
     
     def on_closing(self):
-        # Обработка закрытия окна
+        # 🆕 Обработка закрытия окна с очисткой таймеров
         self.stop_camera()
+        
+        # Очистка всех таймеров при закрытии
+        if self.last_recognition_timer:
+            self.root.after_cancel(self.last_recognition_timer)
+        
         self.root.destroy()
 
 # Запуск приложения
