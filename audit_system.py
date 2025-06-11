@@ -149,7 +149,7 @@ class AuditLogger:
             return None
     
     def export_to_csv(self, file_path, days=7):
-        """Экспорт данных аудита в CSV"""
+        """Экспорт данных аудита в CSV с правильной кодировкой"""
         try:
             conn = sqlite3.connect(self.db_name)
             cursor = conn.cursor()
@@ -166,8 +166,9 @@ class AuditLogger:
             events = cursor.fetchall()
             conn.close()
             
-            with open(file_path, 'w', newline='', encoding='utf-8') as csvfile:
-                writer = csv.writer(csvfile)
+            # 🆕 ИСПРАВЛЕННЫЙ экспорт с правильной кодировкой
+            with open(file_path, 'w', newline='', encoding='utf-8-sig') as csvfile:
+                writer = csv.writer(csvfile, delimiter=';')  # Используем точку с запятой для Excel
                 writer.writerow(['Время', 'Тип события', 'ID пользователя', 'Результат', 'Уверенность'])
                 
                 for event in events:
@@ -192,13 +193,14 @@ class AuditLogger:
                     
                     event_type_ru = event_types.get(event[1], event[1])
                     result_ru = 'Успех' if event[3] == 'success' else 'Неудача'
+                    confidence_str = f"{event[4]:.3f}" if event[4] is not None else 'Н/Д'
                     
                     writer.writerow([
                         formatted_time,
                         event_type_ru,
                         event[2] or 'Н/Д',
                         result_ru,
-                        f"{event[4]:.3f}" if event[4] is not None else 'Н/Д'
+                        confidence_str
                     ])
             
             return True
@@ -302,7 +304,7 @@ class AuditTab:
         log_title.pack(side="left", expand=True)
         
         # Кнопки управления справа
-        export_btn = tk.Button(log_header, text="Экспорт CSV", 
+        export_btn = tk.Button(log_header, text="Экспорт", 
                              font=("Arial", 10, "bold"), bg="#10B981", fg="white",
                              relief="flat", padx=15, pady=6, command=self.export_csv)
         export_btn.pack(side="right", padx=(5, 15))
