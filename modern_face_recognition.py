@@ -67,7 +67,7 @@ class ModernFaceRecognitionApp:
         icon_label = tk.Label(title_frame, text="👤", font=("Arial", 24), bg="#6B46C1", fg="white")
         icon_label.pack(side="left", padx=(0, 10))
         
-        title_label = tk.Label(title_frame, text="FACE RECOGNITION SYSTEM", 
+        title_label = tk.Label(title_frame, text="СИСТЕМА РАСПОЗНАВАНИЯ ЛИЦ", 
                               font=("Arial", 18, "bold"), bg="#6B46C1", fg="white")
         title_label.pack(side="left")
         
@@ -114,7 +114,7 @@ class ModernFaceRecognitionApp:
         video_header.pack(fill="x")
         video_header.pack_propagate(False)
         
-        video_title = tk.Label(video_header, text="LIVE CAMERA", 
+        video_title = tk.Label(video_header, text="КАМЕРА", 
                               font=("Arial", 12, "bold"), bg="#7C3AED", fg="white")
         video_title.pack(expand=True)
         
@@ -143,12 +143,6 @@ class ModernFaceRecognitionApp:
                                     relief="flat", padx=15, pady=6, command=self.stop_camera,
                                     state="disabled")
         self.stop_button.pack(side="left", padx=(0, 5))
-        
-        # Кнопка обновления кодировок (перенесли сюда)
-        refresh_btn = tk.Button(camera_controls, text="🔄 Обновить", 
-                               font=("Arial", 10, "bold"), bg="#6366F1", fg="white",
-                               relief="flat", padx=15, pady=6, command=self.load_encodings)
-        refresh_btn.pack(side="right")
         
         # Правая панель - Информация о распознанном пользователе (шире)
         right_panel = tk.Frame(main_container, bg="white", relief="raised", bd=2)
