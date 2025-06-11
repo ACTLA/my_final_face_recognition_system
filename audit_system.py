@@ -307,11 +307,6 @@ class AuditTab:
                              relief="flat", padx=15, pady=6, command=self.export_csv)
         export_btn.pack(side="right", padx=(5, 15))
         
-        refresh_btn = tk.Button(log_header, text="🔄 Обновить", 
-                              font=("Arial", 10, "bold"), bg="#6366F1", fg="white",
-                              relief="flat", padx=15, pady=6, command=self.refresh_data)
-        refresh_btn.pack(side="right", padx=5)
-        
         # Таблица событий
         log_content = tk.Frame(log_container, bg="white")
         log_content.pack(fill="both", expand=True, padx=10, pady=10)
@@ -399,9 +394,9 @@ class AuditTab:
             # 🆕 РАСШИРЕННЫЙ СЛОВАРЬ ПЕРЕВОДОВ ДЛЯ НОВЫХ СОБЫТИЙ
             event_types = {
                 'recognition_attempt': 'Распознавание',
-                'user_added': '➕ Добавлен пользователь',
-                'user_deleted': '🗑 Удален пользователь',
-                'user_photo_updated': '🔄 Обновлено фото',
+                'user_added': 'Добавлен пользователь',
+                'user_deleted': 'Удален пользователь',
+                'user_photo_updated': 'Обновлено фото',
                 'system_start': 'Запуск системы',
                 'camera_start': 'Запуск камеры',
                 'camera_stop': 'Остановка камеры',
