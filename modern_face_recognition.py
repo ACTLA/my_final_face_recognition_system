@@ -36,8 +36,10 @@ class ModernFaceRecognitionApp:
         
         # 🆕 Переменные для контроля задержек распознавания
         self.last_recognition_time = None
+        self.last_unknown_time = None  # 🆕 Время последнего неизвестного лица
         self.last_recognition_timer = None
-        self.recognition_delay = 3  # Задержка между распознаваниями (секунды)
+        self.recognition_delay = 3  # Задержка между успешными распознаваниями (секунды)
+        self.unknown_face_delay = 5  # 🆕 Задержка для неизвестных лиц (секунды)
         self.info_display_duration = 2  # Время показа информации (секунды)
         
         # Создание папки для фотографий если её нет
@@ -404,17 +406,18 @@ class ModernFaceRecognitionApp:
             messagebox.showerror("Ошибка", f"Ошибка запуска камеры: {str(e)}")
     
     def stop_camera(self):
-        # 🆕 Остановка камеры с очисткой таймеров
+        # 🆕 Остановка камеры с очисткой всех таймеров
         self.is_running = False
         if self.cap:
             self.cap.release()
         
-        # 🆕 Очищаем все таймеры при остановке камеры
+        # 🆕 Очищаем все таймеры и времена при остановке камеры
         if self.last_recognition_timer:
             self.root.after_cancel(self.last_recognition_timer)
             self.last_recognition_timer = None
         
         self.last_recognition_time = None
+        self.last_unknown_time = None  # 🆕 Очищаем время неизвестных лиц
         
         self.start_button.config(state="normal")
         self.stop_button.config(state="disabled")
@@ -427,7 +430,7 @@ class ModernFaceRecognitionApp:
             self.audit.log_system_event("camera_stop", "success")
     
     def process_frame(self):
-        """🆕 Обработка каждого кадра с камеры С ЗАДЕРЖКАМИ"""
+        """🆕 Обработка каждого кадра с камеры С РАЗНЫМИ ЗАДЕРЖКАМИ"""
         if not self.is_running or not self.cap:
             return
         
@@ -448,17 +451,25 @@ class ModernFaceRecognitionApp:
         recognized_user = None
         current_time = datetime.datetime.now()
         
-        # 🆕 ПРОВЕРЯЕМ ЗАДЕРЖКУ РАСПОЗНАВАНИЯ (3 СЕКУНДЫ)
-        can_recognize = True
+        # 🆕 ПРОВЕРЯЕМ ЗАДЕРЖКИ ДЛЯ РАЗНЫХ ТИПОВ РАСПОЗНАВАНИЯ
+        can_recognize_known = True
+        can_recognize_unknown = True
+        
+        # Задержка для успешных распознаваний (3 секунды)
         if (self.last_recognition_time and 
             (current_time - self.last_recognition_time).total_seconds() < self.recognition_delay):
-            can_recognize = False
+            can_recognize_known = False
+        
+        # 🆕 Задержка для неизвестных лиц (5 секунд)
+        if (self.last_unknown_time and 
+            (current_time - self.last_unknown_time).total_seconds() < self.unknown_face_delay):
+            can_recognize_unknown = False
         
         # Обработка найденных лиц
         for face_encoding, face_location in zip(face_encodings, face_locations):
             name = "Обработка..."  # По умолчанию
             
-            if can_recognize and self.known_encodings:
+            if self.known_encodings:
                 matches = face_recognition.compare_faces(self.known_encodings, face_encoding)
                 face_distances = face_recognition.face_distance(self.known_encodings, face_encoding)
                 
@@ -466,41 +477,53 @@ class ModernFaceRecognitionApp:
                 confidence = 1 - face_distances[best_match_index]
                 
                 if matches[best_match_index]:
-                    user_id = self.known_user_ids[best_match_index]
-                    user_data = self.db.get_user(user_id)
-                    if user_data:
-                        recognized_user = user_data
-                        name = user_data[2]
-                        
-                        # 📊 ЛОГИРУЕМ УСПЕШНОЕ РАСПОЗНАВАНИЕ
-                        if self.audit:
-                            self.audit.log_recognition(user_id, True, confidence)
-                        
-                        # 🆕 ОБНОВЛЯЕМ ВРЕМЯ ПОСЛЕДНЕГО РАСПОЗНАВАНИЯ
-                        self.last_recognition_time = current_time
-                        
-                        # 🆕 ЗАПУСКАЕМ ТАЙМЕР ОЧИСТКИ ЧЕРЕЗ 2 СЕКУНДЫ
-                        if self.last_recognition_timer:
-                            self.root.after_cancel(self.last_recognition_timer)
-                        self.last_recognition_timer = self.root.after(
-                            self.info_display_duration * 1000, 
-                            self.reset_user_info
-                        )
-                        
+                    # 🆕 ИЗВЕСТНЫЙ ПОЛЬЗОВАТЕЛЬ - проверяем задержку 3 сек
+                    if can_recognize_known:
+                        user_id = self.known_user_ids[best_match_index]
+                        user_data = self.db.get_user(user_id)
+                        if user_data:
+                            recognized_user = user_data
+                            name = user_data[2]
+                            
+                            # 📊 ЛОГИРУЕМ УСПЕШНОЕ РАСПОЗНАВАНИЕ
+                            if self.audit:
+                                self.audit.log_recognition(user_id, True, confidence)
+                            
+                            # 🆕 ОБНОВЛЯЕМ ВРЕМЯ ПОСЛЕДНЕГО УСПЕШНОГО РАСПОЗНАВАНИЯ
+                            self.last_recognition_time = current_time
+                            
+                            # 🆕 ЗАПУСКАЕМ ТАЙМЕР ОЧИСТКИ ЧЕРЕЗ 2 СЕКУНДЫ
+                            if self.last_recognition_timer:
+                                self.root.after_cancel(self.last_recognition_timer)
+                            self.last_recognition_timer = self.root.after(
+                                self.info_display_duration * 1000, 
+                                self.reset_user_info
+                            )
+                        else:
+                            name = "Ошибка БД"
+                            if self.audit:
+                                self.audit.log_recognition(None, False, confidence)
                     else:
-                        name = "Ошибка БД"
+                        # 🆕 Показываем ожидание для известного пользователя
+                        time_left = self.recognition_delay - (current_time - self.last_recognition_time).total_seconds()
+                        name = f"Ожидание {time_left:.1f}с"
+                else:
+                    # 🆕 НЕИЗВЕСТНЫЙ ПОЛЬЗОВАТЕЛЬ - проверяем задержку 5 сек
+                    if can_recognize_unknown:
+                        name = "Неизвестный"
+                        
+                        # 📊 ЛОГИРУЕМ НЕУДАЧНОЕ РАСПОЗНАВАНИЕ
                         if self.audit:
                             self.audit.log_recognition(None, False, confidence)
-                else:
-                    name = "Неизвестный"
-                    if self.audit:
-                        self.audit.log_recognition(None, False, confidence)
-            elif not self.known_encodings:
+                        
+                        # 🆕 ОБНОВЛЯЕМ ВРЕМЯ ПОСЛЕДНЕГО НЕИЗВЕСТНОГО ЛИЦА
+                        self.last_unknown_time = current_time
+                    else:
+                        # 🆕 Показываем ожидание для неизвестного лица
+                        time_left = self.unknown_face_delay - (current_time - self.last_unknown_time).total_seconds()
+                        name = f"Блокировка {time_left:.1f}с"
+            else:
                 name = "Нет кодировок"
-            elif not can_recognize:
-                # 🆕 Показываем что идет задержка
-                time_left = self.recognition_delay - (current_time - self.last_recognition_time).total_seconds()
-                name = f"Ожидание {time_left:.1f}с"
             
             # Рисуем рамку вокруг лица
             top, right, bottom, left = face_location
@@ -512,10 +535,14 @@ class ModernFaceRecognitionApp:
             # 🆕 Цвет рамки зависит от состояния
             if recognized_user:
                 color = (0, 255, 0)  # Зеленый - распознан
-            elif not can_recognize:
-                color = (255, 165, 0)  # Оранжевый - ожидание
+            elif not can_recognize_known and "Ожидание" in name:
+                color = (255, 165, 0)  # Оранжевый - ожидание известного
+            elif not can_recognize_unknown and "Блокировка" in name:
+                color = (255, 0, 255)  # Фиолетовый - блокировка неизвестного
+            elif "Неизвестный" in name:
+                color = (0, 0, 255)  # Красный - неизвестный
             else:
-                color = (0, 0, 255)  # Красный - не распознан
+                color = (128, 128, 128)  # Серый - обработка
             
             cv2.rectangle(frame, (left, top), (right, bottom), color, 2)
             cv2.rectangle(frame, (left, bottom - 35), (right, bottom), color, cv2.FILLED)
@@ -782,12 +809,16 @@ class ModernFaceRecognitionApp:
             self.users_tree.insert("", "end", values=(user[1], user[2], photo_name))
     
     def on_closing(self):
-        # 🆕 Обработка закрытия окна с очисткой таймеров
+        # 🆕 Обработка закрытия окна с очисткой всех таймеров
         self.stop_camera()
         
         # Очистка всех таймеров при закрытии
         if self.last_recognition_timer:
             self.root.after_cancel(self.last_recognition_timer)
+        
+        # 🆕 Очищаем все переменные времени
+        self.last_recognition_time = None
+        self.last_unknown_time = None
         
         self.root.destroy()
 
