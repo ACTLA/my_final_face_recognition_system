@@ -424,7 +424,7 @@ class ModernFaceRecognitionApp:
             self.audit.log_system_event("camera_stop", "success")
     
     def process_frame(self):
-        """🆕 Обработка каждого кадра с камеры С РАЗНЫМИ ЗАДЕРЖКАМИ"""
+        """🆕 Упрощенная обработка кадров с цветовой схемой"""
         if not self.is_running or not self.cap:
             return
         
@@ -461,7 +461,10 @@ class ModernFaceRecognitionApp:
         
         # Обработка найденных лиц
         for face_encoding, face_location in zip(face_encodings, face_locations):
-            name = "Обработка..."  # По умолчанию
+            name = ""  # По умолчанию пустой текст
+            is_known_user = False
+            is_waiting_known = False
+            is_waiting_unknown = False
             
             if self.known_encodings:
                 matches = face_recognition.compare_faces(self.known_encodings, face_encoding)
@@ -471,13 +474,14 @@ class ModernFaceRecognitionApp:
                 confidence = 1 - face_distances[best_match_index]
                 
                 if matches[best_match_index]:
-                    # 🆕 ИЗВЕСТНЫЙ ПОЛЬЗОВАТЕЛЬ - проверяем задержку 3 сек
+                    # ИЗВЕСТНЫЙ ПОЛЬЗОВАТЕЛЬ
                     if can_recognize_known:
                         user_id = self.known_user_ids[best_match_index]
                         user_data = self.db.get_user(user_id)
                         if user_data:
                             recognized_user = user_data
-                            name = user_data[2]
+                            name = user_data[2]  # Показываем имя пользователя
+                            is_known_user = True
                             
                             # 📊 ЛОГИРУЕМ УСПЕШНОЕ РАСПОЗНАВАНИЕ
                             if self.audit:
@@ -494,18 +498,16 @@ class ModernFaceRecognitionApp:
                                 self.reset_user_info
                             )
                         else:
-                            name = "Ошибка БД"
                             if self.audit:
                                 self.audit.log_recognition(None, False, confidence)
                     else:
-                        # 🆕 Показываем ожидание для известного пользователя
+                        # 🆕 Ожидание для известного пользователя С ТАЙМЕРОМ
                         time_left = self.recognition_delay - (current_time - self.last_recognition_time).total_seconds()
-                        name = f"Ожидание {time_left:.1f}с"
+                        name = f"{time_left:.1f}s"
+                        is_waiting_known = True
                 else:
-                    # 🆕 НЕИЗВЕСТНЫЙ ПОЛЬЗОВАТЕЛЬ - проверяем задержку 5 сек
+                    # НЕИЗВЕСТНЫЙ ПОЛЬЗОВАТЕЛЬ
                     if can_recognize_unknown:
-                        name = "Неизвестный"
-                        
                         # 📊 ЛОГИРУЕМ НЕУДАЧНОЕ РАСПОЗНАВАНИЕ
                         if self.audit:
                             self.audit.log_recognition(None, False, confidence)
@@ -513,11 +515,10 @@ class ModernFaceRecognitionApp:
                         # 🆕 ОБНОВЛЯЕМ ВРЕМЯ ПОСЛЕДНЕГО НЕИЗВЕСТНОГО ЛИЦА
                         self.last_unknown_time = current_time
                     else:
-                        # 🆕 Показываем ожидание для неизвестного лица
+                        # 🆕 Ожидание для неизвестного лица С ТАЙМЕРОМ
                         time_left = self.unknown_face_delay - (current_time - self.last_unknown_time).total_seconds()
-                        name = f"Блокировка {time_left:.1f}с"
-            else:
-                name = "Нет кодировок"
+                        name = f"{time_left:.1f}s"
+                        is_waiting_unknown = True
             
             # Рисуем рамку вокруг лица
             top, right, bottom, left = face_location
@@ -526,21 +527,21 @@ class ModernFaceRecognitionApp:
             bottom *= 4
             left *= 4
             
-            # 🆕 Цвет рамки зависит от состояния
-            if recognized_user:
-                color = (0, 255, 0)  # Зеленый - распознан
-            elif not can_recognize_known and "Ожидание" in name:
-                color = (255, 165, 0)  # Оранжевый - ожидание известного
-            elif not can_recognize_unknown and "Блокировка" in name:
-                color = (255, 0, 255)  # Фиолетовый - блокировка неизвестного
-            elif "Неизвестный" in name:
-                color = (0, 0, 255)  # Красный - неизвестный
+            # 🆕 УПРОЩЕННАЯ цветовая схема (BGR формат для OpenCV)
+            if is_known_user:
+                color = (0, 255, 0)        # ЗЕЛЕНАЯ - распознанный пользователь
+            elif is_waiting_known or is_waiting_unknown:
+                color = (0, 255, 255)      # ЖЕЛТАЯ - ожидание (любое)
             else:
-                color = (128, 128, 128)  # Серый - обработка
+                color = (0, 0, 255)        # КРАСНАЯ - неизвестный/ошибка
             
+            # Рисуем рамку
             cv2.rectangle(frame, (left, top), (right, bottom), color, 2)
-            cv2.rectangle(frame, (left, bottom - 35), (right, bottom), color, cv2.FILLED)
-            cv2.putText(frame, name, (left + 6, bottom - 6), cv2.FONT_HERSHEY_DUPLEX, 0.6, (255, 255, 255), 1)
+            
+            # 🆕 Отображаем текст для имени пользователя ИЛИ таймера ожидания
+            if name.strip():
+                cv2.rectangle(frame, (left, bottom - 35), (right, bottom), color, cv2.FILLED)
+                cv2.putText(frame, name, (left + 6, bottom - 6), cv2.FONT_HERSHEY_DUPLEX, 0.6, (0, 0, 0), 1)  # Черный текст
         
         # 🆕 ОБНОВЛЯЕМ ИНФОРМАЦИЮ О ПОЛЬЗОВАТЕЛЕ ТОЛЬКО ПРИ НОВОМ РАСПОЗНАВАНИИ
         if recognized_user:
