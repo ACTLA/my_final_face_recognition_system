@@ -185,7 +185,9 @@ class AuditLogger:
                         'camera_start': 'Запуск камеры',
                         'camera_stop': 'Остановка камеры',
                         'encodings_loaded': 'Загрузка кодировок',
-                        'system_error': 'Ошибка системы'
+                        'system_error': 'Ошибка системы',
+                        'system_audit': 'Аудит системы',
+                        'audit_integrated': 'Интеграция аудита'
                     }
                     
                     event_type_ru = event_types.get(event[1], event[1])
@@ -394,18 +396,19 @@ class AuditTab:
             timestamp = datetime.datetime.fromisoformat(event[0])
             formatted_time = timestamp.strftime('%H:%M:%S')
             
-            # Переводим типы событий
+            # 🆕 РАСШИРЕННЫЙ СЛОВАРЬ ПЕРЕВОДОВ ДЛЯ НОВЫХ СОБЫТИЙ
             event_types = {
                 'recognition_attempt': 'Распознавание',
-                'user_added': 'Добавлен пользователь',
-                'user_deleted': 'Удален пользователь',
-                'user_photo_updated': 'Обновлено фото',
+                'user_added': '➕ Добавлен пользователь',
+                'user_deleted': '🗑 Удален пользователь',
+                'user_photo_updated': '🔄 Обновлено фото',
                 'system_start': 'Запуск системы',
                 'camera_start': 'Запуск камеры',
                 'camera_stop': 'Остановка камеры',
                 'system_audit': 'Аудит системы',
                 'encodings_loaded': 'Загрузка кодировок',
-                'system_error': 'Ошибка системы'
+                'system_error': 'Ошибка системы',
+                'audit_integrated': 'Интеграция аудита'
             }
             
             event_type = event_types.get(event[1], event[1])
@@ -416,6 +419,9 @@ class AuditTab:
             # Определяем тег для цвета строки
             tag = ""
             if event[1] == 'recognition_attempt':
+                tag = "success" if event[3] == 'success' else "failed"
+            elif event[1] in ['user_added', 'user_deleted', 'user_photo_updated']:
+                # 🆕 Специальная подсветка для действий с пользователями
                 tag = "success" if event[3] == 'success' else "failed"
             else:
                 tag = "system"
@@ -462,318 +468,18 @@ class AuditIntegration:
         # Добавляем новую вкладку
         app_instance.audit_tab = AuditTab(app_instance.notebook, app_instance.audit)
         
-        # Сохраняем оригинальные методы
-        app_instance._original_process_frame = app_instance.process_frame
-        app_instance._original_add_user = app_instance.add_user
-        app_instance._original_delete_user = app_instance.delete_user
-        app_instance._original_start_camera = app_instance.start_camera
-        app_instance._original_stop_camera = app_instance.stop_camera
-        app_instance._original_load_encodings = app_instance.load_encodings
-        app_instance._original_update_user_photo = app_instance.update_user_photo
-        
-        # Заменяем методы на версии с логированием
-        app_instance.process_frame = lambda: AuditIntegration._process_frame_with_audit_and_delays(app_instance)
-        app_instance.add_user = lambda: AuditIntegration._add_user_with_audit(app_instance)
-        app_instance.delete_user = lambda: AuditIntegration._delete_user_with_audit(app_instance)
-        app_instance.start_camera = lambda: AuditIntegration._start_camera_with_audit(app_instance)
-        app_instance.stop_camera = lambda: AuditIntegration._stop_camera_with_audit(app_instance)
-        app_instance.load_encodings = lambda: AuditIntegration._load_encodings_with_audit(app_instance)
-        app_instance.update_user_photo = lambda: AuditIntegration._update_user_photo_with_audit(app_instance)
-        
-        # Логируем интеграцию
+        # 🆕 Больше не перезаписываем методы - логирование уже встроено в основной код!
+        # Просто логируем успешную интеграцию
         app_instance.audit.log_system_event("audit_integrated")
         
         print("✅ Система аудита успешно интегрирована!")
+        print("📊 Все действия пользователей теперь логируются:")
+        print("   ✅ Попытки распознавания")
+        print("   ✅ Добавление пользователей")
+        print("   ✅ Удаление пользователей") 
+        print("   ✅ Обновление фотографий")
+        print("   ✅ Системные события")
         return app_instance
-    
-    @staticmethod
-    def _process_frame_with_audit_and_delays(app_instance):
-        """Версия process_frame с логированием и задержками"""
-        if not app_instance.is_running or not app_instance.cap:
-            return
-        
-        ret, frame = app_instance.cap.read()
-        if not ret:
-            print("Не удалось получить кадр с камеры")
-            app_instance.root.after(30, app_instance.process_frame)
-            return
-        
-        # Уменьшаем размер кадра для ускорения распознавания
-        small_frame = cv2.resize(frame, (0, 0), fx=0.25, fy=0.25)
-        rgb_small_frame = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB)
-        
-        # Поиск лиц на кадре
-        face_locations = face_recognition.face_locations(rgb_small_frame)
-        face_encodings = face_recognition.face_encodings(rgb_small_frame, face_locations)
-        
-        recognized_user = None
-        current_time = datetime.datetime.now()
-        
-        # Проверяем задержку распознавания (3 секунды)
-        if (app_instance.last_recognition_time and 
-            (current_time - app_instance.last_recognition_time).total_seconds() < 3):
-            # Еще не прошло 3 секунды с последнего распознавания
-            pass
-        else:
-            # Обработка найденных лиц
-            for face_encoding, face_location in zip(face_encodings, face_locations):
-                if app_instance.known_encodings:
-                    matches = face_recognition.compare_faces(app_instance.known_encodings, face_encoding)
-                    face_distances = face_recognition.face_distance(app_instance.known_encodings, face_encoding)
-                    
-                    best_match_index = np.argmin(face_distances)
-                    confidence = 1 - face_distances[best_match_index]
-                    
-                    if matches[best_match_index]:
-                        user_id = app_instance.known_user_ids[best_match_index]
-                        user_data = app_instance.db.get_user(user_id)
-                        if user_data:
-                            recognized_user = user_data
-                            name = user_data[2]
-                            # 🆕 ЛОГИРУЕМ УСПЕШНОЕ РАСПОЗНАВАНИЕ
-                            app_instance.audit.log_recognition(user_id, True, confidence)
-                            app_instance.last_recognition_time = current_time
-                            
-                            # Запускаем таймер очистки через 2 секунды
-                            if app_instance.last_recognition_timer:
-                                app_instance.root.after_cancel(app_instance.last_recognition_timer)
-                            app_instance.last_recognition_timer = app_instance.root.after(2000, app_instance.reset_user_info)
-                            
-                        else:
-                            name = "Ошибка БД"
-                            app_instance.audit.log_recognition(None, False, confidence)
-                    else:
-                        name = "Неизвестный"
-                        app_instance.audit.log_recognition(None, False, confidence)
-                else:
-                    name = "Нет кодировок"
-                
-                # Рисуем рамку вокруг лица
-                top, right, bottom, left = face_location
-                top *= 4; right *= 4; bottom *= 4; left *= 4
-                
-                color = (0, 255, 0) if recognized_user else (0, 0, 255)
-                
-                cv2.rectangle(frame, (left, top), (right, bottom), color, 2)
-                cv2.rectangle(frame, (left, bottom - 35), (right, bottom), color, cv2.FILLED)
-                cv2.putText(frame, name, (left + 6, bottom - 6), cv2.FONT_HERSHEY_DUPLEX, 0.6, (255, 255, 255), 1)
-        
-        # Обновляем информацию о пользователе
-        if recognized_user:
-            app_instance.update_user_info(recognized_user)
-        elif not face_locations:
-            # Только сбрасываем если нет лиц И нет активного таймера
-            if not app_instance.last_recognition_timer:
-                app_instance.reset_user_info()
-        
-        # Конвертируем кадр для отображения в Tkinter
-        rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        pil_image = Image.fromarray(rgb_frame)
-        photo = ImageTk.PhotoImage(pil_image)
-        
-        app_instance.video_label.config(image=photo, text="")
-        app_instance.video_label.image = photo
-        
-        app_instance.root.after(30, app_instance.process_frame)
-    
-    @staticmethod
-    def _add_user_with_audit(app_instance):
-        """Версия add_user с логированием"""
-        user_id = app_instance.user_id_entry.get().strip()
-        name = app_instance.name_entry.get().strip()
-        
-        if not user_id or not name:
-            messagebox.showerror("Ошибка", "Заполните все поля!")
-            return
-        
-        if not app_instance.photo_path:
-            messagebox.showerror("Ошибка", "Выберите фотографию!")
-            return
-        
-        photo_filename = f"{user_id}.jpg"
-        photo_destination = os.path.join("photos", photo_filename)
-        
-        try:
-            shutil.copy2(app_instance.photo_path, photo_destination)
-            face_encoding = app_instance.create_face_encoding(photo_destination)
-            
-            if app_instance.db.add_user(user_id, name, photo_destination, face_encoding):
-                # 🆕 ЛОГИРУЕМ УСПЕШНОЕ ДОБАВЛЕНИЕ
-                app_instance.audit.log_user_action("added", user_id, True)
-                
-                messagebox.showinfo("Успех", "✅ Пользователь добавлен!")
-                
-                # Очищаем поля
-                app_instance.user_id_entry.delete(0, tk.END)
-                app_instance.name_entry.delete(0, tk.END)
-                app_instance.photo_path = ""
-                app_instance.photo_status_label.config(text="Фото не выбрано", fg="#6B7280")
-                
-                # Очищаем превью
-                app_instance.photo_preview.config(image="", text="Превью", font=("Arial", 8), fg="#6B7280")
-                
-                # Обновляем данные
-                app_instance.refresh_user_list()
-                app_instance.load_encodings()
-            else:
-                # 🆕 ЛОГИРУЕМ НЕУДАЧНОЕ ДОБАВЛЕНИЕ
-                app_instance.audit.log_user_action("added", user_id, False)
-                
-                messagebox.showerror("Ошибка", "Пользователь с таким ID уже существует!")
-                if os.path.exists(photo_destination):
-                    os.remove(photo_destination)
-                    
-        except Exception as e:
-            # 🆕 ЛОГИРУЕМ ОШИБКУ ДОБАВЛЕНИЯ
-            app_instance.audit.log_user_action("added", user_id, False)
-            app_instance.audit.log_system_event("system_error", "failed")
-            messagebox.showerror("Ошибка", f"Не удалось добавить пользователя: {str(e)}")
-    
-    @staticmethod
-    def _delete_user_with_audit(app_instance):
-        """Версия delete_user с логированием"""
-        selected_item = app_instance.users_tree.selection()
-        if not selected_item:
-            messagebox.showwarning("Предупреждение", "Выберите пользователя для удаления!")
-            return
-        
-        user_data = app_instance.users_tree.item(selected_item)
-        user_id = user_data['values'][0]
-        
-        if messagebox.askyesno("Подтверждение", f"Удалить пользователя {user_id}?"):
-            if app_instance.db.delete_user(user_id):
-                # 🆕 ЛОГИРУЕМ УСПЕШНОЕ УДАЛЕНИЕ
-                app_instance.audit.log_user_action("deleted", user_id, True)
-                
-                messagebox.showinfo("Успех", "✅ Пользователь удален!")
-                app_instance.refresh_user_list()
-                app_instance.load_encodings()
-            else:
-                # 🆕 ЛОГИРУЕМ НЕУДАЧНОЕ УДАЛЕНИЕ
-                app_instance.audit.log_user_action("deleted", user_id, False)
-                messagebox.showerror("Ошибка", "Не удалось удалить пользователя!")
-    
-    @staticmethod
-    def _start_camera_with_audit(app_instance):
-        """Версия start_camera с логированием"""
-        try:
-            app_instance.cap = cv2.VideoCapture(0)
-            if not app_instance.cap.isOpened():
-                # 🆕 ЛОГИРУЕМ ОШИБКУ ЗАПУСКА КАМЕРЫ
-                app_instance.audit.log_system_event("camera_start", "failed")
-                messagebox.showerror("Ошибка", "Не удалось подключиться к камере!")
-                return
-            
-            app_instance.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-            app_instance.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-            
-            app_instance.is_running = True
-            app_instance.start_button.config(state="disabled")
-            app_instance.stop_button.config(state="normal")
-            
-            # 🆕 ЛОГИРУЕМ УСПЕШНЫЙ ЗАПУСК КАМЕРЫ
-            app_instance.audit.log_system_event("camera_start", "success")
-            
-            app_instance.process_frame()
-            
-        except Exception as e:
-            # 🆕 ЛОГИРУЕМ ОШИБКУ ЗАПУСКА КАМЕРЫ
-            app_instance.audit.log_system_event("camera_start", "failed")
-            messagebox.showerror("Ошибка", f"Ошибка запуска камеры: {str(e)}")
-    
-    @staticmethod
-    def _stop_camera_with_audit(app_instance):
-        """Версия stop_camera с логированием"""
-        app_instance.is_running = False
-        if app_instance.cap:
-            app_instance.cap.release()
-        
-        app_instance.start_button.config(state="normal")
-        app_instance.stop_button.config(state="disabled")
-        
-        app_instance.video_label.config(image="", text="Камера остановлена")
-        app_instance.reset_user_info()
-        
-        # 🆕 ЛОГИРУЕМ ОСТАНОВКУ КАМЕРЫ
-        app_instance.audit.log_system_event("camera_stop", "success")
-    
-    @staticmethod
-    def _load_encodings_with_audit(app_instance):
-        """Версия load_encodings с логированием"""
-        try:
-            app_instance.known_encodings, app_instance.known_user_ids = app_instance.db.get_all_encodings()
-            print(f"Загружено кодировок из БД: {len(app_instance.known_encodings)}")
-            
-            # 🆕 ЛОГИРУЕМ УСПЕШНУЮ ЗАГРУЗКУ КОДИРОВОК
-            app_instance.audit.log_system_event("encodings_loaded", "success")
-            
-            if not app_instance.known_encodings:
-                print("Кодировки не найдены. Добавьте пользователей.")
-                
-        except Exception as e:
-            print(f"Ошибка загрузки кодировок: {e}")
-            # 🆕 ЛОГИРУЕМ ОШИБКУ ЗАГРУЗКИ КОДИРОВОК
-            app_instance.audit.log_system_event("encodings_loaded", "failed")
-            app_instance.known_encodings = []
-            app_instance.known_user_ids = []
-    
-    @staticmethod
-    def _update_user_photo_with_audit(app_instance):
-        """Версия update_user_photo с логированием"""
-        selected_item = app_instance.users_tree.selection()
-        if not selected_item:
-            messagebox.showwarning("Предупреждение", "Выберите пользователя для обновления фото!")
-            return
-        
-        if not app_instance.photo_path:
-            messagebox.showerror("Ошибка", "Сначала выберите новую фотографию!")
-            return
-        
-        # Получаем данные выбранного пользователя
-        user_data = app_instance.users_tree.item(selected_item)
-        user_id = user_data['values'][0]
-        
-        if messagebox.askyesno("Подтверждение", f"Обновить фото для пользователя {user_id}?"):
-            try:
-                # Копируем новое фото
-                photo_filename = f"{user_id}.jpg"
-                photo_destination = os.path.join("photos", photo_filename)
-                
-                # Удаляем старое фото если существует
-                if os.path.exists(photo_destination):
-                    os.remove(photo_destination)
-                
-                # Копируем новое фото
-                shutil.copy2(app_instance.photo_path, photo_destination)
-                
-                # Создаем новую кодировку
-                face_encoding = app_instance.create_face_encoding(photo_destination)
-                
-                # Обновляем в БД
-                if app_instance.db.update_user_encoding(user_id, face_encoding):
-                    # 🆕 ЛОГИРУЕМ УСПЕШНОЕ ОБНОВЛЕНИЕ ФОТО
-                    app_instance.audit.log_user_action("photo_updated", user_id, True)
-                    
-                    messagebox.showinfo("Успех", "✅ Фото пользователя обновлено!")
-                    
-                    # Очищаем выбранное фото
-                    app_instance.photo_path = ""
-                    app_instance.photo_status_label.config(text="Фото не выбрано", fg="#6B7280")
-                    app_instance.photo_preview.config(image="", text="Превью", font=("Arial", 8), fg="#6B7280")
-                    
-                    # Обновляем данные
-                    app_instance.refresh_user_list()
-                    app_instance.load_encodings()
-                else:
-                    # 🆕 ЛОГИРУЕМ НЕУДАЧНОЕ ОБНОВЛЕНИЕ ФОТО
-                    app_instance.audit.log_user_action("photo_updated", user_id, False)
-                    messagebox.showerror("Ошибка", "Не удалось обновить фото в БД!")
-                    
-            except Exception as e:
-                # 🆕 ЛОГИРУЕМ ОШИБКУ ОБНОВЛЕНИЯ ФОТО
-                app_instance.audit.log_user_action("photo_updated", user_id, False)
-                app_instance.audit.log_system_event("system_error", "failed")
-                messagebox.showerror("Ошибка", f"Не удалось обновить фото: {str(e)}")
 
 # Пример использования - добавить в main.py:
 """
@@ -791,4 +497,4 @@ if __name__ == "__main__":
     root.protocol("WM_DELETE_WINDOW", app.on_closing)
     root.mainloop()
 """
-                
+        

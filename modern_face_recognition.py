@@ -30,6 +30,9 @@ class ModernFaceRecognitionApp:
         # Переменные для добавления пользователя
         self.photo_path = ""
         
+        # 🆕 Переменная для системы аудита (будет установлена при интеграции)
+        self.audit = None
+        
         # Создание папки для фотографий если её нет
         if not os.path.exists("photos"):
             os.makedirs("photos")
@@ -341,24 +344,36 @@ class ModernFaceRecognitionApp:
         self.refresh_user_list()
     
     def load_encodings(self):
-        # Загрузка кодировок лиц из базы данных
+        # 🆕 Загрузка кодировок лиц из базы данных С ЛОГИРОВАНИЕМ
         try:
             self.known_encodings, self.known_user_ids = self.db.get_all_encodings()
             print(f"Загружено кодировок из БД: {len(self.known_encodings)}")
+            
+            # 📊 ЛОГИРУЕМ УСПЕШНУЮ ЗАГРУЗКУ КОДИРОВОК
+            if self.audit:
+                self.audit.log_system_event("encodings_loaded", "success")
             
             if not self.known_encodings:
                 print("Кодировки не найдены. Добавьте пользователей.")
                 
         except Exception as e:
             print(f"Ошибка загрузки кодировок: {e}")
+            
+            # 📊 ЛОГИРУЕМ ОШИБКУ ЗАГРУЗКИ КОДИРОВОК
+            if self.audit:
+                self.audit.log_system_event("encodings_loaded", "failed")
+            
             self.known_encodings = []
             self.known_user_ids = []
     
     def start_camera(self):
-        # Запуск камеры
+        # 🆕 Запуск камеры С ЛОГИРОВАНИЕМ
         try:
             self.cap = cv2.VideoCapture(0)
             if not self.cap.isOpened():
+                # 📊 ЛОГИРУЕМ ОШИБКУ ЗАПУСКА КАМЕРЫ
+                if self.audit:
+                    self.audit.log_system_event("camera_start", "failed")
                 messagebox.showerror("Ошибка", "Не удалось подключиться к камере!")
                 return
             
@@ -369,13 +384,20 @@ class ModernFaceRecognitionApp:
             self.start_button.config(state="disabled")
             self.stop_button.config(state="normal")
             
+            # 📊 ЛОГИРУЕМ УСПЕШНЫЙ ЗАПУСК КАМЕРЫ
+            if self.audit:
+                self.audit.log_system_event("camera_start", "success")
+            
             self.process_frame()
             
         except Exception as e:
+            # 📊 ЛОГИРУЕМ ОШИБКУ ЗАПУСКА КАМЕРЫ
+            if self.audit:
+                self.audit.log_system_event("camera_start", "failed")
             messagebox.showerror("Ошибка", f"Ошибка запуска камеры: {str(e)}")
     
     def stop_camera(self):
-        # Остановка камеры
+        # 🆕 Остановка камеры С ЛОГИРОВАНИЕМ
         self.is_running = False
         if self.cap:
             self.cap.release()
@@ -385,6 +407,10 @@ class ModernFaceRecognitionApp:
         
         self.video_label.config(image="", text="Камера остановлена")
         self.reset_user_info()
+        
+        # 📊 ЛОГИРУЕМ ОСТАНОВКУ КАМЕРЫ
+        if self.audit:
+            self.audit.log_system_event("camera_stop", "success")
     
     def process_frame(self):
         # Обработка каждого кадра с камеры
@@ -414,6 +440,7 @@ class ModernFaceRecognitionApp:
                 face_distances = face_recognition.face_distance(self.known_encodings, face_encoding)
                 
                 best_match_index = np.argmin(face_distances)
+                confidence = 1 - face_distances[best_match_index]
                 
                 if matches[best_match_index]:
                     user_id = self.known_user_ids[best_match_index]
@@ -421,10 +448,19 @@ class ModernFaceRecognitionApp:
                     if user_data:
                         recognized_user = user_data
                         name = user_data[2]
+                        # 📊 ЛОГИРУЕМ УСПЕШНОЕ РАСПОЗНАВАНИЕ
+                        if self.audit:
+                            self.audit.log_recognition(user_id, True, confidence)
                     else:
                         name = "Ошибка БД"
+                        # 📊 ЛОГИРУЕМ ОШИБКУ РАСПОЗНАВАНИЯ
+                        if self.audit:
+                            self.audit.log_recognition(None, False, confidence)
                 else:
                     name = "Неизвестный"
+                    # 📊 ЛОГИРУЕМ НЕУДАЧНОЕ РАСПОЗНАВАНИЕ
+                    if self.audit:
+                        self.audit.log_recognition(None, False, confidence)
             else:
                 name = "Нет кодировок"
             
@@ -525,7 +561,7 @@ class ModernFaceRecognitionApp:
                                         font=("Arial", 8), fg="#EF4444")
     
     def add_user(self):
-        # Добавление нового пользователя
+        # 🆕 Добавление нового пользователя С ЛОГИРОВАНИЕМ
         user_id = self.user_id_entry.get().strip()
         name = self.name_entry.get().strip()
         
@@ -545,6 +581,10 @@ class ModernFaceRecognitionApp:
             face_encoding = self.create_face_encoding(photo_destination)
             
             if self.db.add_user(user_id, name, photo_destination, face_encoding):
+                # 📊 ЛОГИРУЕМ УСПЕШНОЕ ДОБАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯ
+                if self.audit:
+                    self.audit.log_user_action("added", user_id, True)
+                
                 messagebox.showinfo("Успех", "✅ Пользователь добавлен!")
                 
                 # Очищаем поля
@@ -560,11 +600,19 @@ class ModernFaceRecognitionApp:
                 self.refresh_user_list()
                 self.load_encodings()
             else:
+                # 📊 ЛОГИРУЕМ НЕУДАЧНОЕ ДОБАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯ
+                if self.audit:
+                    self.audit.log_user_action("added", user_id, False)
+                
                 messagebox.showerror("Ошибка", "Пользователь с таким ID уже существует!")
                 if os.path.exists(photo_destination):
                     os.remove(photo_destination)
                     
         except Exception as e:
+            # 📊 ЛОГИРУЕМ ОШИБКУ ДОБАВЛЕНИЯ ПОЛЬЗОВАТЕЛЯ
+            if self.audit:
+                self.audit.log_user_action("added", user_id, False)
+                self.audit.log_system_event("system_error", "failed")
             messagebox.showerror("Ошибка", f"Не удалось добавить пользователя: {str(e)}")
     
     def create_face_encoding(self, photo_path):
@@ -587,7 +635,7 @@ class ModernFaceRecognitionApp:
             raise Exception(f"Ошибка создания кодировки: {str(e)}")
     
     def update_user_photo(self):
-        # Обновление фотографии существующего пользователя
+        # 🆕 Обновление фотографии существующего пользователя С ЛОГИРОВАНИЕМ
         selected_item = self.users_tree.selection()
         if not selected_item:
             messagebox.showwarning("Предупреждение", "Выберите пользователя для обновления фото!")
@@ -619,6 +667,10 @@ class ModernFaceRecognitionApp:
                 
                 # Обновляем в БД
                 if self.db.update_user_encoding(user_id, face_encoding):
+                    # 📊 ЛОГИРУЕМ УСПЕШНОЕ ОБНОВЛЕНИЕ ФОТО
+                    if self.audit:
+                        self.audit.log_user_action("photo_updated", user_id, True)
+                    
                     messagebox.showinfo("Успех", "✅ Фото пользователя обновлено!")
                     
                     # Очищаем выбранное фото
@@ -630,13 +682,20 @@ class ModernFaceRecognitionApp:
                     self.refresh_user_list()
                     self.load_encodings()
                 else:
+                    # 📊 ЛОГИРУЕМ НЕУДАЧНОЕ ОБНОВЛЕНИЕ ФОТО
+                    if self.audit:
+                        self.audit.log_user_action("photo_updated", user_id, False)
                     messagebox.showerror("Ошибка", "Не удалось обновить фото в БД!")
                     
             except Exception as e:
+                # 📊 ЛОГИРУЕМ ОШИБКУ ОБНОВЛЕНИЯ ФОТО
+                if self.audit:
+                    self.audit.log_user_action("photo_updated", user_id, False)
+                    self.audit.log_system_event("system_error", "failed")
                 messagebox.showerror("Ошибка", f"Не удалось обновить фото: {str(e)}")
     
     def delete_user(self):
-        # Удаление выбранного пользователя
+        # 🆕 Удаление выбранного пользователя С ЛОГИРОВАНИЕМ
         selected_item = self.users_tree.selection()
         if not selected_item:
             messagebox.showwarning("Предупреждение", "Выберите пользователя для удаления!")
@@ -647,10 +706,17 @@ class ModernFaceRecognitionApp:
         
         if messagebox.askyesno("Подтверждение", f"Удалить пользователя {user_id}?"):
             if self.db.delete_user(user_id):
+                # 📊 ЛОГИРУЕМ УСПЕШНОЕ УДАЛЕНИЕ ПОЛЬЗОВАТЕЛЯ
+                if self.audit:
+                    self.audit.log_user_action("deleted", user_id, True)
+                
                 messagebox.showinfo("Успех", "✅ Пользователь удален!")
                 self.refresh_user_list()
                 self.load_encodings()
             else:
+                # 📊 ЛОГИРУЕМ НЕУДАЧНОЕ УДАЛЕНИЕ ПОЛЬЗОВАТЕЛЯ
+                if self.audit:
+                    self.audit.log_user_action("deleted", user_id, False)
                 messagebox.showerror("Ошибка", "Не удалось удалить пользователя!")
     
     def refresh_user_list(self):
