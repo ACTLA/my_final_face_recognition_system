@@ -44,8 +44,7 @@ class AuditLogger:
         conn.commit()
         conn.close()
         
-        # Логируем запуск системы аудита
-        self._log_event("system_audit", None, "started", None)
+        # 🆕 УБРАНО логирование запуска системы аудита
     
     def log_recognition(self, user_id=None, success=False, confidence=0.0):
         """Логирование попытки распознавания"""
@@ -182,13 +181,11 @@ class AuditLogger:
                         'user_added': 'Добавление пользователя',
                         'user_deleted': 'Удаление пользователя',
                         'user_photo_updated': 'Обновление фото',
-                        'system_start': 'Запуск системы',
+                        'system_start': 'Запуск системы распознавания',
                         'camera_start': 'Запуск камеры',
                         'camera_stop': 'Остановка камеры',
                         'encodings_loaded': 'Загрузка кодировок',
-                        'system_error': 'Ошибка системы',
-                        'system_audit': 'Аудит системы',
-                        'audit_integrated': 'Интеграция аудита'
+                        'system_error': 'Ошибка системы'
                     }
                     
                     event_type_ru = event_types.get(event[1], event[1])
@@ -313,19 +310,19 @@ class AuditTab:
         log_content = tk.Frame(log_container, bg="white")
         log_content.pack(fill="both", expand=True, padx=10, pady=10)
         
-        columns = ("Время", "Тип события", "Пользователь", "Результат", "Уверенность")
+        columns = ("Время", "Тип события", "ID пользователя", "Результат", "Уверенность")
         self.events_tree = ttk.Treeview(log_content, columns=columns, show="headings")
         
         # Настройка колонок
         self.events_tree.heading("Время", text="Время")
         self.events_tree.heading("Тип события", text="Тип события")
-        self.events_tree.heading("Пользователь", text="Пользователь")
+        self.events_tree.heading("ID пользователя", text="ID пользователя")
         self.events_tree.heading("Результат", text="Результат")
         self.events_tree.heading("Уверенность", text="Уверенность")
         
         self.events_tree.column("Время", width=120)
         self.events_tree.column("Тип события", width=180)
-        self.events_tree.column("Пользователь", width=120)
+        self.events_tree.column("ID пользователя", width=120)
         self.events_tree.column("Результат", width=100)
         self.events_tree.column("Уверенность", width=100)
         
@@ -399,13 +396,11 @@ class AuditTab:
                 'user_added': 'Добавлен пользователь',
                 'user_deleted': 'Удален пользователь',
                 'user_photo_updated': 'Обновлено фото',
-                'system_start': 'Запуск системы',
+                'system_start': 'Запуск системы распознавания',
                 'camera_start': 'Запуск камеры',
                 'camera_stop': 'Остановка камеры',
-                'system_audit': 'Аудит системы',
                 'encodings_loaded': 'Загрузка кодировок',
-                'system_error': 'Ошибка системы',
-                'audit_integrated': 'Интеграция аудита'
+                'system_error': 'Ошибка системы'
             }
             
             event_type = event_types.get(event[1], event[1])
@@ -465,9 +460,8 @@ class AuditIntegration:
         # Добавляем новую вкладку
         app_instance.audit_tab = AuditTab(app_instance.notebook, app_instance.audit)
         
-        # 🆕 Больше не перезаписываем методы - логирование уже встроено в основной код!
-        # Просто логируем успешную интеграцию
-        app_instance.audit.log_system_event("audit_integrated")
+        # 🆕 Логируем запуск системы распознавания лиц
+        app_instance.audit.log_system_event("system_start")
         
         print("✅ Система аудита успешно интегрирована!")
         print("📊 Все действия пользователей теперь логируются:")
