@@ -229,7 +229,7 @@ class AuditWidget:
                 'user_added': 'Добавлен пользователь',
                 'user_deleted': 'Удален пользователь',
                 'user_photo_updated': 'Обновлено фото',
-                'system_start': 'Запуск системы',
+                'system_start': 'Запуск системы распознавания лиц',
                 'camera_start': 'Запуск камеры',
                 'camera_stop': 'Остановка камеры',
                 'encodings_loaded': 'Загрузка кодировок'

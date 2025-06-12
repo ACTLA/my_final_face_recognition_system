@@ -174,7 +174,7 @@ class AuditLogger:
                         'user_added': 'Добавление пользователя',
                         'user_deleted': 'Удаление пользователя',
                         'user_photo_updated': 'Обновление фото',
-                        'system_start': 'Запуск системы',
+                        'system_start': 'Запуск системы распознавания лиц',
                         'camera_start': 'Запуск камеры',
                         'camera_stop': 'Остановка камеры'
                     }
