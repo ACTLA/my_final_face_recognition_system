@@ -142,13 +142,8 @@ class FaceRecognitionSystem:
         title_frame = tk.Frame(header_frame, bg=THEME_COLOR)
         title_frame.pack(side="left", fill="y")
         
-        # Иконка системы (эмодзи для кроссплатформенности)
-        icon_label = tk.Label(title_frame, text="👤", font=("Arial", 24), 
-                             bg=THEME_COLOR, fg="white")
-        icon_label.pack(side="left", padx=(0, 10))
-        
         # Название системы
-        title_label = tk.Label(title_frame, text="СИСТЕМА РАСПОЗНАВАНИЯ ЛИЦ", 
+        title_label = tk.Label(title_frame, text="  СИСТЕМА РАСПОЗНАВАНИЯ ЛИЦ   ", 
                               font=("Arial", 18, "bold"), bg=THEME_COLOR, fg="white")
         title_label.pack(side="left")
     

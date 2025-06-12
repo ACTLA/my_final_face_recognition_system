@@ -100,7 +100,7 @@ class FaceRecognitionWidget:
         """
         # Создание основного фрейма вкладки с фирменным цветом
         self.frame = tk.Frame(self.notebook, bg=THEME_COLOR)
-        self.notebook.add(self.frame, text="  🎥 Распознавание лиц  ")
+        self.notebook.add(self.frame, text="  Распознавание лиц  ")
         
         # Основной контейнер с отступами для эстетичного вида
         main_container = tk.Frame(self.frame, bg=THEME_COLOR)

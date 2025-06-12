@@ -342,7 +342,7 @@ class SecurityAuditLogger:
                 'system_start': 'Запуск системы распознавания',
                 'camera_start': 'Запуск камеры',
                 'camera_stop': 'Остановка камеры',
-                'encodings_loaded': 'Загрузка кодировок',
+                'encodings_loaded': 'Обновление данных в БД',
                 'system_shutdown': 'Завершение работы системы распознавания'
             }
             

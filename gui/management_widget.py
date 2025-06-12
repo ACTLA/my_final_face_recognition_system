@@ -100,7 +100,7 @@ class UserManagementWidget:
         """
         # Создание основного фрейма вкладки
         self.frame = tk.Frame(self.notebook, bg="#6B46C1")
-        self.notebook.add(self.frame, text="  👥 Управление пользователями  ")
+        self.notebook.add(self.frame, text="  Управление пользователями  ")
         
         # Основной контейнер с сеткой для двухпанельного размещения
         main_container = tk.Frame(self.frame, bg="#6B46C1")
