@@ -479,8 +479,9 @@ class FaceRecognitionWidget:
             # Обработка распознанного пользователя
             if can_recognize_known:
                 # Разрешено логирование - записываем успешное распознавание
+                # Передаем расстояние схожести в систему аудита (меньше = лучше соответствие)
                 if audit:
-                    audit.log_face_recognition_attempt(face_info['user_id'], True, face_info['confidence'])
+                    audit.log_face_recognition_attempt(face_info['user_id'], True, face_info['distance'])
                 
                 # Получение имени пользователя из базы данных
                 user_data = self.db.get_user_by_id(face_info['user_id'])
@@ -495,8 +496,9 @@ class FaceRecognitionWidget:
             # Обработка неизвестного лица
             if can_recognize_unknown:
                 # Разрешено логирование - записываем неудачную попытку
+                # Передаем расстояние схожести для анализа подозрительной активности
                 if audit:
-                    audit.log_face_recognition_attempt(None, False, face_info['confidence'])
+                    audit.log_face_recognition_attempt(None, False, face_info['distance'])
                 
                 # Обновляем время последней детекции неизвестного лица
                 self.last_unknown_face_detection_timestamp = current_time

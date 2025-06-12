@@ -241,7 +241,7 @@ class SecurityAuditWidget:
         - Тип события: Категория события безопасности
         - ID пользователя: Идентификатор при попытках распознавания
         - Результат: Статус выполнения операции
-        - Уверенность: Оценка уверенности для биометрического распознавания
+        - Схожесть: Расстояние схожести для биометрического распознавания (меньше = лучше)
         
         Аргументы:
             parent (tk.Widget): Родительский контейнер
@@ -251,7 +251,7 @@ class SecurityAuditWidget:
         log_content.pack(fill="both", expand=True, padx=10, pady=10)
         
         # Определение структуры таблицы
-        columns = ("Время", "Тип события", "ID пользователя", "Результат", "Уверенность")
+        columns = ("Время", "Тип события", "ID пользователя", "Результат", "Схожесть")
         self.events_tree = ttk.Treeview(log_content, columns=columns, show="headings")
         
         # Настройка заголовков и ширины колонок
@@ -263,7 +263,7 @@ class SecurityAuditWidget:
         self.events_tree.column("Тип события", width=180)
         self.events_tree.column("ID пользователя", width=120)
         self.events_tree.column("Результат", width=100)
-        self.events_tree.column("Уверенность", width=100)
+        self.events_tree.column("Схожесть", width=100)
         
         # Вертикальная прокрутка для больших объемов данных
         scrollbar_events = ttk.Scrollbar(log_content, orient="vertical", 
@@ -314,7 +314,7 @@ class SecurityAuditWidget:
         
         # Подсчет статистики по типам событий
         for stat in stats['general_stats']:
-            event_type, result, count, avg_confidence = stat
+            event_type, result, count, avg_distance = stat
             if event_type == 'recognition_attempt':
                 total_attempts += count
                 if result == 'success':
@@ -377,8 +377,8 @@ class SecurityAuditWidget:
             # Форматирование результата с эмодзи-индикаторами
             result = "✅ Успех" if event[3] == 'success' else "❌ Неудача"
             
-            # Форматирование оценки уверенности
-            confidence = f"{event[4]:.3f}" if event[4] is not None else "—"
+            # Форматирование расстояния схожести (меньше = лучше соответствие)
+            distance = f"{event[4]:.3f}" if event[4] is not None else "—"
             
             # Определение цветового тега для строки
             if event[1] == 'recognition_attempt':
@@ -393,7 +393,7 @@ class SecurityAuditWidget:
             
             # Добавление записи в таблицу с цветовой индикацией
             self.events_tree.insert("", "end", 
-                                  values=(formatted_time, event_type, user_id, result, confidence),
+                                  values=(formatted_time, event_type, user_id, result, distance),
                                   tags=(tag,))
     
     def export_security_report(self):

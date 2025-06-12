@@ -86,7 +86,7 @@ class SecurityAuditLogger:
         - event_type: Тип события безопасности (перечислимые значения)
         - user_id: Идентификатор пользователя (для событий, связанных с пользователями)
         - result: Результат операции (success/failed)
-        - confidence: Оценка уверенности для биометрических операций
+        - distance: Расстояние схожести для биометрических операций (меньше = лучше)
         
         Индексы для производительности:
         - idx_timestamp: Для временных запросов и отчетности
@@ -105,7 +105,7 @@ class SecurityAuditLogger:
                 event_type TEXT NOT NULL,
                 user_id TEXT,
                 result TEXT NOT NULL,
-                confidence REAL
+                distance REAL
             )
         ''')
         
@@ -123,7 +123,7 @@ class SecurityAuditLogger:
         connection.commit()
         connection.close()
     
-    def log_face_recognition_attempt(self, user_id=None, success=False, confidence=0.0):
+    def log_face_recognition_attempt(self, user_id=None, success=False, distance=1.0):
         """
         Логирование попытки биометрической идентификации
         
@@ -133,15 +133,15 @@ class SecurityAuditLogger:
         Аргументы:
             user_id (str, необязательно): ID распознанного пользователя (None для неизвестных лиц)
             success (bool): Флаг успешности распознавания
-            confidence (float): Оценка уверенности биометрического сравнения (0.0-1.0)
+            distance (float): Расстояние схожести биометрического сравнения (0.0-1.0+, меньше = лучше)
         
         Последствия для безопасности:
         - Множественные неудачные попытки могут указывать на атаку
-        - Низкие оценки уверенности требуют дополнительной проверки
+        - Высокие значения расстояния требуют дополнительной проверки (большое расстояние = низкое сходство)
         - Временные шаблоны помогают выявить аномальную активность
         """
         result = "success" if success else "failed"
-        self._write_security_event("recognition_attempt", user_id, result, confidence)
+        self._write_security_event("recognition_attempt", user_id, result, distance)
     
     def log_user_management_action(self, action, user_id, success=True):
         """
@@ -182,7 +182,7 @@ class SecurityAuditLogger:
         """
         self._write_security_event(event_type, None, result, None)
     
-    def _write_security_event(self, event_type, user_id, result, confidence):
+    def _write_security_event(self, event_type, user_id, result, distance):
         """
         Внутренний метод записи события безопасности в базу данных
         
@@ -193,7 +193,7 @@ class SecurityAuditLogger:
             event_type (str): Тип события безопасности
             user_id (str или None): Идентификатор пользователя
             result (str): Результат операции
-            confidence (float или None): Оценка уверенности (для биометрических операций)
+            distance (float или None): Расстояние схожести (для биометрических операций)
         
         Обработка ошибок:
         - Все ошибки записи логируются в консоль для устранения неполадок
@@ -210,9 +210,9 @@ class SecurityAuditLogger:
             
             # Атомарная операция записи события
             cursor.execute('''
-                INSERT INTO security_events (timestamp, event_type, user_id, result, confidence)
+                INSERT INTO security_events (timestamp, event_type, user_id, result, distance)
                 VALUES (?, ?, ?, ?, ?)
-            ''', (timestamp, event_type, user_id, result, confidence))
+            ''', (timestamp, event_type, user_id, result, distance))
             
             # Фиксация транзакции
             connection.commit()
@@ -236,14 +236,14 @@ class SecurityAuditLogger:
         Возвращает:
             dict или None: Словарь со статистическими данными:
                 {
-                    'general_stats': [(event_type, result, count, avg_confidence), ...],
-                    'recent_events': [(timestamp, event_type, user_id, result, confidence), ...]
+                    'general_stats': [(event_type, result, count, avg_distance), ...],
+                    'recent_events': [(timestamp, event_type, user_id, result, distance), ...]
                 }
                 или None при ошибке
         
         Статистические показатели включают:
         - Общую статистику по типам событий и результатам
-        - Средние оценки уверенности для биометрических операций
+        - Средние расстояния схожести для биометрических операций
         - Последние события для мониторинга в режиме реального времени
         - Временные шаблоны для анализа аномалий
         """
@@ -256,7 +256,7 @@ class SecurityAuditLogger:
             
             # Запрос общей статистики с группировкой по типам событий и результатам
             cursor.execute('''
-                SELECT event_type, result, COUNT(*), AVG(confidence)
+                SELECT event_type, result, COUNT(*), AVG(distance)
                 FROM security_events 
                 WHERE timestamp >= ?
                 GROUP BY event_type, result
@@ -267,7 +267,7 @@ class SecurityAuditLogger:
             
             # Запрос последних событий для мониторинга в режиме реального времени
             cursor.execute('''
-                SELECT timestamp, event_type, user_id, result, confidence
+                SELECT timestamp, event_type, user_id, result, distance
                 FROM security_events 
                 WHERE timestamp >= ?
                 ORDER BY timestamp DESC
@@ -324,7 +324,7 @@ class SecurityAuditLogger:
             
             # Запрос всех событий за указанный период
             cursor.execute('''
-                SELECT timestamp, event_type, user_id, result, confidence
+                SELECT timestamp, event_type, user_id, result, distance
                 FROM security_events 
                 WHERE timestamp >= ?
                 ORDER BY timestamp DESC
@@ -350,7 +350,7 @@ class SecurityAuditLogger:
                 writer = csv.writer(csvfile, delimiter=';')
                 
                 # Заголовки колонок на русском языке для отчетности
-                writer.writerow(['Время', 'Тип события', 'ID пользователя', 'Результат', 'Уверенность'])
+                writer.writerow(['Время', 'Тип события', 'ID пользователя', 'Результат', 'Схожесть'])
                 
                 # Запись всех событий с локализацией и форматированием
                 for event in events:
@@ -364,8 +364,8 @@ class SecurityAuditLogger:
                     # Форматирование результата
                     result_ru = 'Успех' if event[3] == 'success' else 'Неудача'
                     
-                    # Форматирование оценки уверенности
-                    confidence_str = f"{event[4]:.3f}" if event[4] is not None else 'Н/Д'
+                    # Форматирование расстояния схожести
+                    distance_str = f"{event[4]:.3f}" if event[4] is not None else 'Н/Д'
                     
                     # Запись строки в CSV
                     writer.writerow([
@@ -373,7 +373,7 @@ class SecurityAuditLogger:
                         event_type_ru,
                         event[2] or 'Н/Д',  # user_id или 'Н/Д' если None
                         result_ru,
-                        confidence_str
+                        distance_str
                     ])
             
             return True
