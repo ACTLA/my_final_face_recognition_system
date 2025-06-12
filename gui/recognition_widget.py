@@ -1,25 +1,25 @@
 # gui/recognition_widget.py
 """
-Модуль виджета распознавания лиц в реальном времени
+Модуль виджета распознавания лиц в режиме реального времени
 Автор: Студент 4 курса ОмГУ им. Ф.М. Достоевского
 ВКР: Автоматизированная система распознавания лиц
 
 Описание:
 Виджет распознавания лиц является основным интерфейсом взаимодействия
-с системой биометрической идентификации. Обеспечивает real-time обработку
-видеопотока с камеры и визуализацию результатов распознавания.
+с системой биометрической идентификации. Обеспечивает обработку
+видеопотока с камеры в режиме реального времени и визуализацию результатов распознавания.
 
 Основные функции:
 - Управление состоянием веб-камеры
-- Real-time обработка видеопотока
+- Обработка видеопотока в режиме реального времени
 - Визуализация результатов распознавания
 - Система защиты от избыточных срабатываний
 - Интеграция с системой аудита безопасности
 
 Архитектурные решения:
-- Event-driven обработка видео через tkinter.after()
-- Temporal throttling для предотвращения спама
-- State management для корректного lifecycle камеры
+- Обработка видео, управляемая событиями, через tkinter.after()
+- Временное ограничение для предотвращения избыточных срабатываний
+- Управление состоянием для корректного жизненного цикла камеры
 """
 
 import tkinter as tk  # Основная библиотека для создания графического интерфейса
@@ -33,28 +33,28 @@ from config.settings import *
 
 class FaceRecognitionWidget:
     """
-    Виджет распознавания лиц в реальном времени
+    Виджет распознавания лиц в режиме реального времени
     
     Основной компонент интерфейса для работы с видеопотоком и распознаванием лиц.
     Объединяет в себе:
     - Управление камерой (запуск/остановка)
-    - Обработку видеопотока в реальном времени
+    - Обработку видеопотока в режиме реального времени
     - Отображение результатов распознавания
-    - Контроль частоты распознавания (защита от спама)
+    - Контроль частоты распознавания (защита от избыточных срабатываний)
     - Логирование событий безопасности
     
     Архитектурные особенности:
     - Неблокирующая обработка видео через tkinter.after()
     - Система таймеров для предотвращения избыточных срабатываний
     - Интеграция с системой аудита безопасности
-    - Graceful resource management для камеры
+    - Корректное управление ресурсами камеры
     """
     
     def __init__(self, parent_notebook, camera_manager, face_engine, db):
         """
         Инициализация виджета распознавания лиц
         
-        Args:
+        Аргументы:
             parent_notebook (ttk.Notebook): Родительский контейнер вкладок
             camera_manager (CameraController): Контроллер управления веб-камерой
             face_engine (FaceAnalysisEngine): Движок анализа лиц
@@ -66,13 +66,13 @@ class FaceRecognitionWidget:
         self.face_engine = face_engine  # Движок анализа лиц
         self.db = db  # База данных зарегистрированных пользователей
         
-        # Система контроля частоты распознавания (temporal throttling)
-        # Предотвращает избыточные срабатывания и спам в логах
+        # Система контроля частоты распознавания (временное ограничение)
+        # Предотвращает избыточные срабатывания и переполнение логов
         self.last_successful_recognition_timestamp = None  # Время последнего успешного распознавания
         self.last_unknown_face_detection_timestamp = None  # Время последней детекции неизвестного лица
         self.user_info_display_timer = None  # Таймер для автоматической очистки информации
         
-        # Провайдер системы аудита (устанавливается через dependency injection)
+        # Поставщик системы аудита (устанавливается через внедрение зависимостей)
         self.audit_logger_provider = None
         
         # Инициализация графического интерфейса
@@ -80,13 +80,13 @@ class FaceRecognitionWidget:
     
     def set_audit_logger(self, audit_provider_function):
         """
-        Установка провайдера системы аудита через dependency injection
+        Установка поставщика системы аудита через внедрение зависимостей
         
         Этот паттерн позволяет виджету получать доступ к системе аудита
         без жесткой зависимости, что улучшает тестируемость кода.
         
-        Args:
-            audit_provider_function (callable): Функция, возвращающая экземпляр AuditLogger
+        Аргументы:
+            audit_provider_function (callable): Функция, возвращающая экземпляр логгера аудита
         """
         self.audit_logger_provider = audit_provider_function
     
@@ -119,7 +119,7 @@ class FaceRecognitionWidget:
         - Кнопки запуска и остановки камеры
         - Заголовок с названием секции
         
-        Args:
+        Аргументы:
             parent (tk.Widget): Родительский контейнер для размещения панели
         """
         # Создание левой панели с фиксированной шириной
@@ -142,7 +142,7 @@ class FaceRecognitionWidget:
         video_container.pack(padx=10, pady=10)
         video_container.pack_propagate(False)
         
-        # Label для отображения кадров видео или статусных сообщений
+        # Метка для отображения кадров видео или сообщений о состоянии
         self.video_label = tk.Label(video_container, text="Камера не запущена", 
                                    bg="black", fg="white", font=("Arial", 12))
         self.video_label.pack(fill="both", expand=True)
@@ -161,7 +161,7 @@ class FaceRecognitionWidget:
         Кнопки блокируются/разблокируются в зависимости от состояния камеры
         для предотвращения некорректных операций.
         
-        Args:
+        Аргументы:
             parent (tk.Widget): Родительский контейнер для кнопок
         """
         # Контейнер для кнопок с фиксированной высотой
@@ -192,7 +192,7 @@ class FaceRecognitionWidget:
         - Информационные поля пользователя
         - Область отображения фотографии
         
-        Args:
+        Аргументы:
             parent (tk.Widget): Родительский контейнер для панели
         """
         # Правая панель с информацией о пользователе
@@ -226,7 +226,7 @@ class FaceRecognitionWidget:
         - ID пользователя
         - Имя пользователя
         
-        Args:
+        Аргументы:
             parent (tk.Widget): Родительский контейнер
         """
         # Контейнер для информации с рамкой
@@ -257,7 +257,7 @@ class FaceRecognitionWidget:
         """
         Создание секции отображения фотографии пользователя
         
-        Args:
+        Аргументы:
             parent (tk.Widget): Родительский контейнер
         """
         photo_frame = tk.Frame(parent, bg="white")
@@ -281,7 +281,7 @@ class FaceRecognitionWidget:
         Запуск системы видеозахвата и начало обработки кадров
         
         Процедура запуска:
-        1. Инициализация камеры через CameraController
+        1. Инициализация камеры через контроллер камеры
         2. Обновление состояния кнопок интерфейса
         3. Логирование события в систему аудита
         4. Запуск цикла обработки кадров
@@ -297,7 +297,7 @@ class FaceRecognitionWidget:
             # Логирование успешного запуска камеры в систему аудита
             audit = self.audit_logger_provider() if self.audit_logger_provider else None
             if audit:
-                audit.log_system_event("camera_start", "success")
+                audit.log_system_security_event("camera_start", "success")
             
             # Запуск цикла обработки видеокадров
             self.process_video_frame()
@@ -305,7 +305,7 @@ class FaceRecognitionWidget:
             # Ошибка запуска - логирование и уведомление пользователя
             audit = self.audit_logger_provider() if self.audit_logger_provider else None
             if audit:
-                audit.log_system_event("camera_start", "failed")
+                audit.log_system_security_event("camera_start", "failed")
             
             # Показ диалогового окна с ошибкой
             messagebox.showerror("Ошибка", "Не удалось подключиться к камере!")
@@ -329,7 +329,7 @@ class FaceRecognitionWidget:
             self.frame.after_cancel(self.user_info_display_timer)
             self.user_info_display_timer = None
         
-        # Сброс временных меток системы защиты от спама
+        # Сброс временных меток системы защиты от избыточных срабатываний
         self.last_successful_recognition_timestamp = None
         self.last_unknown_face_detection_timestamp = None
         
@@ -344,16 +344,16 @@ class FaceRecognitionWidget:
         # Логирование остановки камеры
         audit = self.audit_logger_provider() if self.audit_logger_provider else None
         if audit:
-            audit.log_system_event("camera_stop", "success")
+            audit.log_system_security_event("camera_stop", "success")
     
     def process_video_frame(self):
         """
-        Основной цикл обработки видеокадров в реальном времени
+        Основной цикл обработки видеокадров в режиме реального времени
         
         Цикл выполняется непрерывно пока камера активна и включает:
         1. Захват кадра с камеры
-        2. Анализ лиц на кадре с помощью face_engine
-        3. Проверку ограничений по времени (защита от спама)
+        2. Анализ лиц на кадре с помощью движка лиц
+        3. Проверку ограничений по времени (защита от избыточных срабатываний)
         4. Отрисовку прямоугольников вокруг лиц
         5. Обновление информации о пользователе
         6. Планирование следующей итерации
@@ -379,7 +379,7 @@ class FaceRecognitionWidget:
         current_time = datetime.datetime.now()
         recognized_user = None  # Переменная для хранения данных распознанного пользователя
         
-        # Проверка временных ограничений для предотвращения спама
+        # Проверка временных ограничений для предотвращения избыточных срабатываний
         can_recognize_known = self._is_known_user_cooldown_expired(current_time)
         can_recognize_unknown = self._is_unknown_user_cooldown_expired(current_time)
         
@@ -421,10 +421,10 @@ class FaceRecognitionWidget:
         пользователя. После успешного распознавания система игнорирует
         последующие распознавания в течение RECOGNITION_DELAY секунд.
         
-        Args:
+        Аргументы:
             current_time (datetime): Текущее время для сравнения
             
-        Returns:
+        Возвращает:
             bool: True если можно выполнить распознавание, False если нужно подождать
         """
         if not self.last_successful_recognition_timestamp:
@@ -441,10 +441,10 @@ class FaceRecognitionWidget:
         Аналогичный механизм защиты для неизвестных лиц с отдельным
         интервалом ожидания для снижения нагрузки на систему.
         
-        Args:
+        Аргументы:
             current_time (datetime): Текущее время для сравнения
             
-        Returns:
+        Возвращает:
             bool: True если можно обработать неизвестное лицо
         """
         if not self.last_unknown_face_detection_timestamp:
@@ -463,13 +463,13 @@ class FaceRecognitionWidget:
         3. Неизвестное лицо + разрешено → красная рамка + логирование
         4. Неизвестное лицо + ожидание → желтая рамка + таймер
         
-        Args:
+        Аргументы:
             face_info (dict): Информация о лице с результатами распознавания
             current_time (datetime): Текущее время
             can_recognize_known (bool): Разрешено ли распознавание известных лиц
             can_recognize_unknown (bool): Разрешено ли обработка неизвестных лиц
             
-        Returns:
+        Возвращает:
             tuple: (название_для_отображения, цвет_рамки_BGR)
         """
         # Получение ссылки на систему аудита для логирования
@@ -480,23 +480,23 @@ class FaceRecognitionWidget:
             if can_recognize_known:
                 # Разрешено логирование - записываем успешное распознавание
                 if audit:
-                    audit.log_recognition(face_info['user_id'], True, face_info['confidence'])
+                    audit.log_face_recognition_attempt(face_info['user_id'], True, face_info['confidence'])
                 
                 # Получение имени пользователя из базы данных
                 user_data = self.db.get_user_by_id(face_info['user_id'])
                 name = user_data[2] if user_data else "Неизвестно"
-                color = (0, 255, 0)  # Зеленый цвет рамки (BGR формат)
+                color = (0, 255, 0)  # Зеленый цвет рамки (формат BGR)
             else:
                 # Период ожидания - показываем оставшееся время
                 time_left = RECOGNITION_DELAY - (current_time - self.last_successful_recognition_timestamp).total_seconds()
-                name = f"{time_left:.1f}s"  # Форматирование до одного знака после запятой
+                name = f"{time_left:.1f}с"  # Форматирование до одного знака после запятой
                 color = (0, 255, 255)  # Желтый цвет рамки
         else:
             # Обработка неизвестного лица
             if can_recognize_unknown:
                 # Разрешено логирование - записываем неудачную попытку
                 if audit:
-                    audit.log_recognition(None, False, face_info['confidence'])
+                    audit.log_face_recognition_attempt(None, False, face_info['confidence'])
                 
                 # Обновляем время последней детекции неизвестного лица
                 self.last_unknown_face_detection_timestamp = current_time
@@ -505,7 +505,7 @@ class FaceRecognitionWidget:
             else:
                 # Период ожидания для неизвестных лиц
                 time_left = UNKNOWN_FACE_DELAY - (current_time - self.last_unknown_face_detection_timestamp).total_seconds()
-                name = f"{time_left:.1f}s"
+                name = f"{time_left:.1f}с"
                 color = (0, 255, 255)  # Желтый цвет рамки
         
         return name, color
@@ -515,7 +515,7 @@ class FaceRecognitionWidget:
         Планирование автоматической очистки информации о пользователе
         
         Устанавливает таймер для автоматической очистки информации
-        через заданный интервал для улучшения UX.
+        через заданный интервал для улучшения пользовательского опыта.
         """
         if self.user_info_display_timer:
             self.frame.after_cancel(self.user_info_display_timer)
@@ -529,23 +529,23 @@ class FaceRecognitionWidget:
         """
         Отображение видеокадра в интерфейсе
         
-        Конвертирует кадр OpenCV в формат tkinter и отображает в Label.
+        Конвертирует кадр OpenCV в формат tkinter и отображает в метке.
         
-        Args:
+        Аргументы:
             frame (numpy.ndarray): Видеокадр в формате BGR
         """
         # Конвертация BGR → RGB для корректного отображения цветов
         rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         
-        # Создание объекта PIL Image
+        # Создание объекта изображения PIL
         pil_image = Image.fromarray(rgb_frame)
         
         # Конвертация в формат tkinter
         photo = ImageTk.PhotoImage(pil_image)
         
-        # Отображение в Label
+        # Отображение в метке
         self.video_label.config(image=photo, text="")
-        self.video_label.image = photo  # Сохранение ссылки для предотвращения garbage collection
+        self.video_label.image = photo  # Сохранение ссылки для предотвращения сборки мусора
     
     def display_recognized_user_info(self, user_data):
         """
@@ -556,7 +556,7 @@ class FaceRecognitionWidget:
         - ID и имя пользователя  
         - Фотография пользователя
         
-        Args:
+        Аргументы:
             user_data (tuple): Данные пользователя из базы данных
         """
         user_id = user_data[1]
