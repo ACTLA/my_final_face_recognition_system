@@ -339,10 +339,11 @@ class SecurityAuditLogger:
                 'user_added': 'Добавление пользователя',
                 'user_deleted': 'Удаление пользователя',
                 'user_photo_updated': 'Обновление фото',
-                'system_start': 'Запуск системы',
+                'system_start': 'Запуск системы распознавания',
                 'camera_start': 'Запуск камеры',
                 'camera_stop': 'Остановка камеры',
-                'encodings_loaded': 'Загрузка кодировок'
+                'encodings_loaded': 'Загрузка кодировок',
+                'system_shutdown': 'Завершение работы системы распознавания'
             }
             
             # Создание файла CSV с корректной кодировкой для кириллицы

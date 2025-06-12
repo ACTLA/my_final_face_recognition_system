@@ -490,7 +490,7 @@ class FaceRecognitionWidget:
             else:
                 # Период ожидания - показываем оставшееся время
                 time_left = RECOGNITION_DELAY - (current_time - self.last_successful_recognition_timestamp).total_seconds()
-                name = f"{time_left:.1f}с"  # Форматирование до одного знака после запятой
+                name = f"{time_left:.1f}s"  # Форматирование до одного знака после запятой
                 color = (0, 255, 255)  # Желтый цвет рамки
         else:
             # Обработка неизвестного лица
@@ -507,7 +507,7 @@ class FaceRecognitionWidget:
             else:
                 # Период ожидания для неизвестных лиц
                 time_left = UNKNOWN_FACE_DELAY - (current_time - self.last_unknown_face_detection_timestamp).total_seconds()
-                name = f"{time_left:.1f}с"
+                name = f"{time_left:.1f}s"
                 color = (0, 255, 255)  # Желтый цвет рамки
         
         return name, color
