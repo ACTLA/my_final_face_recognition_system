@@ -76,7 +76,9 @@ WINDOW_SIZE = "1200x800"
 APP_TITLE = "Система распознавания лиц"
 
 # Основной цвет темы интерфейса (фиолетовый)
-THEME_COLOR = "#6B46C1"
+THEME_COLOR = "#f5f5f5"
+SECOND_COLOR = "#f5f5f5"
+TEXT_COLOR = "#000000"
 
 # Отступы для кнопок интерфейса
 GUI_BUTTON_PADDING_X = 15

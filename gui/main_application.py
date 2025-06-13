@@ -144,7 +144,7 @@ class FaceRecognitionSystem:
         
         # Название системы
         title_label = tk.Label(title_frame, text="  СИСТЕМА РАСПОЗНАВАНИЯ ЛИЦ   ", 
-                              font=("Arial", 18, "bold"), bg=THEME_COLOR, fg="white")
+                              font=("Arial", 18, "bold"), bg=THEME_COLOR, fg=TEXT_COLOR)
         title_label.pack(side="left")
     
     def initialize_tab_container(self):

@@ -32,7 +32,7 @@
 import tkinter as tk  # Основная библиотека для создания графического интерфейса
 from tkinter import ttk, filedialog, messagebox  # Дополнительные компоненты графического интерфейса
 import datetime  # Работа с датой и временем для форматирования
-from config.settings import AUDIT_DATA_REFRESH_INTERVAL
+from config.settings import AUDIT_DATA_REFRESH_INTERVAL, THEME_COLOR, SECOND_COLOR, TEXT_COLOR
 
 
 class SecurityAuditWidget:
@@ -82,11 +82,11 @@ class SecurityAuditWidget:
         2. Нижняя панель: Детальный журнал событий безопасности
         """
         # Создание основного фрейма вкладки аудита
-        self.frame = tk.Frame(self.notebook, bg="#6B46C1")
+        self.frame = tk.Frame(self.notebook, bg=THEME_COLOR)
         self.notebook.add(self.frame, text="  Журнал безопасности  ")
         
         # Основной контейнер для компонентов
-        main_container = tk.Frame(self.frame, bg="#6B46C1")
+        main_container = tk.Frame(self.frame, bg=THEME_COLOR)
         main_container.pack(fill="both", expand=True, padx=20, pady=20)
         
         # Создание секций интерфейса
@@ -111,12 +111,12 @@ class SecurityAuditWidget:
         stats_container.pack(fill="x", pady=(0, 15))
         
         # Заголовок панели статистики
-        stats_header = tk.Frame(stats_container, bg="#7C3AED", height=40)
+        stats_header = tk.Frame(stats_container, bg=SECOND_COLOR, height=40)
         stats_header.pack(fill="x")
         stats_header.pack_propagate(False)
         
         stats_title = tk.Label(stats_header, text="СТАТИСТИКА БЕЗОПАСНОСТИ В РЕАЛЬНОМ ВРЕМЕНИ", 
-                             font=("Arial", 12, "bold"), bg="#7C3AED", fg="white")
+                             font=("Arial", 12, "bold"), bg=SECOND_COLOR, fg=TEXT_COLOR)
         stats_title.pack(expand=True)
         
         # Контейнер содержимого статистики
@@ -217,18 +217,18 @@ class SecurityAuditWidget:
             parent (tk.Widget): Родительский контейнер
         """
         # Заголовок журнала событий
-        log_header = tk.Frame(parent, bg="#7C3AED", height=40)
+        log_header = tk.Frame(parent, bg=SECOND_COLOR, height=40)
         log_header.pack(fill="x")
         log_header.pack_propagate(False)
         
         # Название секции
         log_title = tk.Label(log_header, text="ЖУРНАЛ СОБЫТИЙ БЕЗОПАСНОСТИ", 
-                           font=("Arial", 12, "bold"), bg="#7C3AED", fg="white")
+                           font=("Arial", 12, "bold"), bg=SECOND_COLOR, fg=TEXT_COLOR)
         log_title.pack(side="left", expand=True)
         
         # Кнопка экспорта отчетов
         export_btn = tk.Button(log_header, text="Экспорт отчета", 
-                             font=("Arial", 10, "bold"), bg="#10B981", fg="white",
+                             font=("Arial", 10, "bold"), bg="#10B981", fg=TEXT_COLOR,
                              relief="flat", padx=15, pady=6, command=self.export_security_report)
         export_btn.pack(side="right", padx=(5, 15))
     

@@ -128,12 +128,12 @@ class FaceRecognitionWidget:
         left_panel.pack_propagate(False)  # Предотвращение автоматического изменения размера
         
         # Заголовок панели с фирменным стилем
-        video_header = tk.Frame(left_panel, bg="#7C3AED", height=40)
+        video_header = tk.Frame(left_panel, bg=SECOND_COLOR, height=40)
         video_header.pack(fill="x")
         video_header.pack_propagate(False)
         
         video_title = tk.Label(video_header, text="КАМЕРА", 
-                              font=("Arial", 12, "bold"), bg="#7C3AED", fg="white")
+                              font=("Arial", 12, "bold"), bg=SECOND_COLOR, fg=TEXT_COLOR)
         video_title.pack(expand=True)
         
         # Контейнер для отображения видеопотока
@@ -171,14 +171,14 @@ class FaceRecognitionWidget:
         
         # Кнопка запуска камеры (изначально активна)
         self.start_button = tk.Button(controls, text="Запуск", 
-                                     font=("Arial", 10, "bold"), bg="#10B981", fg="white",
+                                     font=("Arial", 10, "bold"), bg="#10B981", fg=TEXT_COLOR,
                                      relief="flat", padx=GUI_BUTTON_PADDING_X, pady=GUI_BUTTON_PADDING_Y, 
                                      command=self.start_camera)
         self.start_button.pack(side="left", padx=(0, 5))
         
         # Кнопка остановки камеры (изначально заблокирована)
         self.stop_button = tk.Button(controls, text="Стоп", 
-                                    font=("Arial", 10, "bold"), bg="#EF4444", fg="white",
+                                    font=("Arial", 10, "bold"), bg="#EF4444", fg=TEXT_COLOR,
                                     relief="flat", padx=GUI_BUTTON_PADDING_X, pady=GUI_BUTTON_PADDING_Y, 
                                     command=self.stop_camera, state="disabled")
         self.stop_button.pack(side="left", padx=(0, 5))
