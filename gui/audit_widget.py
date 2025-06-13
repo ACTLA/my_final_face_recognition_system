@@ -150,7 +150,7 @@ class SecurityAuditWidget:
         tk.Label(card1, text="Всего попыток сегодня:", font=("Arial", 9), 
                 bg="#F8FAFC", fg="#6B7280").pack(anchor="w", padx=10, pady=(8, 2))
         self.total_attempts_label = tk.Label(card1, text="0", font=("Arial", 14, "bold"), 
-                                           bg="#F8FAFC", fg="#3B82F6")
+                                           bg="#F8FAFC", fg="#31C3F4")
         self.total_attempts_label.pack(anchor="w", padx=10, pady=(0, 8))
         
         # Карточка 2: Успешные распознавания
@@ -160,7 +160,7 @@ class SecurityAuditWidget:
         tk.Label(card2, text="Успешных:", font=("Arial", 9), 
                 bg="#F8FAFC", fg="#6B7280").pack(anchor="w", padx=10, pady=(8, 2))
         self.successful_label = tk.Label(card2, text="0", font=("Arial", 14, "bold"), 
-                                       bg="#F8FAFC", fg="#10B981")
+                                       bg="#F8FAFC", fg="#37F44A")
         self.successful_label.pack(anchor="w", padx=10, pady=(0, 8))
         
         # Карточка 3: Процент эффективности системы
@@ -170,7 +170,7 @@ class SecurityAuditWidget:
         tk.Label(card3, text="Эффективность:", font=("Arial", 9), 
                 bg="#F8FAFC", fg="#6B7280").pack(anchor="w", padx=10, pady=(8, 2))
         self.success_rate_label = tk.Label(card3, text="0%", font=("Arial", 14, "bold"), 
-                                         bg="#F8FAFC", fg="#F59E0B")
+                                         bg="#F8FAFC", fg="#F9A52F")
         self.success_rate_label.pack(anchor="w", padx=10, pady=(0, 8))
         
         # Карточка 4: Последняя активность системы
@@ -228,7 +228,7 @@ class SecurityAuditWidget:
         
         # Кнопка экспорта отчетов
         export_btn = tk.Button(log_header, text="Экспорт отчета", 
-                             font=("Arial", 10, "bold"), bg="#10B981", fg=TEXT_COLOR,
+                             font=("Arial", 10, "bold"), bg="#B9FBC0", fg=TEXT_COLOR,
                              relief="flat", padx=15, pady=6, command=self.export_security_report)
         export_btn.pack(side="right", padx=(5, 15))
     

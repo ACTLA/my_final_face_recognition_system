@@ -171,14 +171,14 @@ class FaceRecognitionWidget:
         
         # Кнопка запуска камеры (изначально активна)
         self.start_button = tk.Button(controls, text="Запуск", 
-                                     font=("Arial", 10, "bold"), bg="#10B981", fg=TEXT_COLOR,
+                                     font=("Arial", 10, "bold"), bg=BTN_COLOR, fg=TEXT_COLOR,
                                      relief="flat", padx=GUI_BUTTON_PADDING_X, pady=GUI_BUTTON_PADDING_Y, 
                                      command=self.start_camera)
         self.start_button.pack(side="left", padx=(0, 5))
         
         # Кнопка остановки камеры (изначально заблокирована)
         self.stop_button = tk.Button(controls, text="Стоп", 
-                                    font=("Arial", 10, "bold"), bg="#EF4444", fg=TEXT_COLOR,
+                                    font=("Arial", 10, "bold"), bg=BTN_COLOR, fg=TEXT_COLOR,
                                     relief="flat", padx=GUI_BUTTON_PADDING_X, pady=GUI_BUTTON_PADDING_Y, 
                                     command=self.stop_camera, state="disabled")
         self.stop_button.pack(side="left", padx=(0, 5))
@@ -567,7 +567,7 @@ class FaceRecognitionWidget:
         
         # Обновление статуса с временной меткой
         current_time = datetime.datetime.now().strftime('%H:%M:%S')
-        self.status_label.config(text=f"✅ Распознан в {current_time}", fg="#10B981")
+        self.status_label.config(text=f"✅ Распознан в {current_time}", fg="#3FF752")
         
         # Обновление информационных полей
         self.user_id_label.config(text=user_id)

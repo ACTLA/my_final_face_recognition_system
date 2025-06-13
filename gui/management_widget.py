@@ -30,7 +30,7 @@ from tkinter import ttk, filedialog, messagebox  # Дополнительные 
 from PIL import Image, ImageTk  # Библиотеки для обработки и отображения изображений
 import os  # Операции с файловой системой
 import shutil  # Высокоуровневые операции с файлами
-from config.settings import PHOTOS_DIR, PHOTO_PREVIEW_SIZE, GUI_BUTTON_PADDING_X, GUI_BUTTON_PADDING_Y, THEME_COLOR, SECOND_COLOR, TEXT_COLOR
+from config.settings import PHOTOS_DIR, PHOTO_PREVIEW_SIZE, GUI_BUTTON_PADDING_X, GUI_BUTTON_PADDING_Y, THEME_COLOR, SECOND_COLOR, TEXT_COLOR, BTN_COLOR
 
 
 class UserManagementWidget:
@@ -209,7 +209,7 @@ class UserManagementWidget:
         
         # Кнопка выбора фотографии
         select_btn = tk.Button(photo_frame, text="Выбрать фото", 
-                              font=("Arial", 9, "bold"), bg="#6366F1", fg=TEXT_COLOR,
+                              font=("Arial", 9, "bold"), bg="#E7EAE5", fg=TEXT_COLOR,
                               relief="flat", padx=GUI_BUTTON_PADDING_X, pady=5, 
                               command=self.handle_photo_selection)
         select_btn.pack(fill="x")
@@ -230,7 +230,7 @@ class UserManagementWidget:
         actions_frame.pack(fill="x", pady=(10, 0))
         
         add_btn = tk.Button(actions_frame, text="Добавить пользователя", 
-                           font=("Arial", 10, "bold"), bg="#10B981", fg=TEXT_COLOR,
+                           font=("Arial", 10, "bold"), bg=BTN_COLOR, fg=TEXT_COLOR,
                            relief="flat", padx=GUI_BUTTON_PADDING_X, pady=8, 
                            command=self.handle_user_addition)
         add_btn.pack(fill="x")
@@ -320,21 +320,21 @@ class UserManagementWidget:
         
         # Кнопка обновления фотографии пользователя
         update_btn = tk.Button(controls, text="Обновить фото", 
-                              font=("Arial", 9, "bold"), bg="#F59E0B", fg=TEXT_COLOR,
+                              font=("Arial", 9, "bold"), bg=BTN_COLOR, fg=TEXT_COLOR,
                               relief="flat", padx=8, pady=6, 
                               command=self.handle_user_photo_update)
         update_btn.pack(side="left", padx=(0, 3))
         
         # Кнопка удаления пользователя
         delete_btn = tk.Button(controls, text="Удалить", 
-                              font=("Arial", 9, "bold"), bg="#EF4444", fg=TEXT_COLOR,
+                              font=("Arial", 9, "bold"), bg=BTN_COLOR, fg=TEXT_COLOR,
                               relief="flat", padx=8, pady=6, 
                               command=self.handle_user_deletion)
         delete_btn.pack(side="left", padx=(0, 3))
         
         # Кнопка обновления списка пользователей
         refresh_btn = tk.Button(controls, text="Обновить список", 
-                               font=("Arial", 9, "bold"), bg="#6366F1", fg=TEXT_COLOR,
+                               font=("Arial", 9, "bold"), bg=BTN_COLOR, fg=TEXT_COLOR,
                                relief="flat", padx=8, pady=6, 
                                command=self.reload_users_table)
         refresh_btn.pack(side="left")

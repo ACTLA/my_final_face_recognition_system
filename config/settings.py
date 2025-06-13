@@ -79,6 +79,7 @@ APP_TITLE = "Система распознавания лиц"
 THEME_COLOR = "#f5f5f5"
 SECOND_COLOR = "#f5f5f5"
 TEXT_COLOR = "#000000"
+BTN_COLOR = "#E7EAE5"
 
 # Отступы для кнопок интерфейса
 GUI_BUTTON_PADDING_X = 15
