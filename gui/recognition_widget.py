@@ -28,6 +28,7 @@ from PIL import Image, ImageTk  # Библиотеки для обработки
 import datetime  # Работа с датой и временем для логирования и контроля задержек
 import os  # Операции с файловой системой
 import cv2  # Библиотека компьютерного зрения для обработки видеопотока
+import time  # Библиотека для измерения времени распознавания
 from config.settings import *
 
 
@@ -71,6 +72,10 @@ class FaceRecognitionWidget:
         self.last_successful_recognition_timestamp = None  # Время последнего успешного распознавания
         self.last_unknown_face_detection_timestamp = None  # Время последней детекции неизвестного лица
         self.user_info_display_timer = None  # Таймер для автоматической очистки информации
+        
+        # Добавленные переменные для измерения времени распознавания
+        self.recognition_start_time = None  # Время начала процесса распознавания
+        self.face_detection_start_time = None  # Время обнаружения лица в кадре
         
         # Поставщик системы аудита (устанавливается через внедрение зависимостей)
         self.audit_logger_provider = None
@@ -333,6 +338,10 @@ class FaceRecognitionWidget:
         self.last_successful_recognition_timestamp = None
         self.last_unknown_face_detection_timestamp = None
         
+        # Сброс таймеров измерения времени распознавания
+        self.recognition_start_time = None
+        self.face_detection_start_time = None
+        
         # Обновление состояния кнопок
         self.start_button.config(state="normal")
         self.stop_button.config(state="disabled")
@@ -374,6 +383,11 @@ class FaceRecognitionWidget:
         
         # Анализ лиц на текущем кадре
         recognized_faces = self.face_engine.detect_and_recognize_faces(frame, FRAME_SCALE)
+        
+        # Запуск таймера при первом обнаружении лица
+        if recognized_faces and self.recognition_start_time is None:
+            self.recognition_start_time = time.time()
+            print("⏱️  Обнаружено лицо, начинаем измерение времени распознавания...")
         
         # Получение текущего времени для контроля частоты распознавания
         current_time = datetime.datetime.now()
@@ -478,6 +492,12 @@ class FaceRecognitionWidget:
         if face_info['is_known']:
             # Обработка распознанного пользователя
             if can_recognize_known:
+                # Измерение времени распознавания
+                if self.recognition_start_time:
+                    recognition_time = time.time() - self.recognition_start_time
+                    print(f"⏱️  ВРЕМЯ РАСПОЗНАВАНИЯ: {recognition_time:.3f} секунд")
+                    self.recognition_start_time = None
+                
                 # Разрешено логирование - записываем успешное распознавание
                 # Передаем расстояние схожести в систему аудита (меньше = лучше соответствие)
                 if audit:
@@ -495,6 +515,11 @@ class FaceRecognitionWidget:
         else:
             # Обработка неизвестного лица
             if can_recognize_unknown:
+                # Запуск таймера при первом обнаружении неизвестного лица для измерения времени попытки распознавания
+                if self.recognition_start_time is None:
+                    self.recognition_start_time = time.time()
+                    print("⏱️  Начало измерения времени для неизвестного лица...")
+                
                 # Разрешено логирование - записываем неудачную попытку
                 # Передаем расстояние схожести для анализа подозрительной активности
                 if audit:
