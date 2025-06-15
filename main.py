@@ -34,6 +34,61 @@ import sys  # Системные функции для управления вы
 import os  # Операции с операционной системой и файлами
 import time  # Библиотека для измерения времени выполнения
 
+# Добавленный импорт для мониторинга памяти
+try:
+    import psutil  # Для мониторинга системных ресурсов
+    PSUTIL_AVAILABLE = True
+except ImportError:
+    PSUTIL_AVAILABLE = False
+    print("⚠️  psutil не установлен. Мониторинг памяти недоступен.")
+    print("   Для установки: pip install psutil")
+
+
+def get_memory_usage():
+    """
+    Получение текущего потребления памяти процессом
+    
+    Возвращает:
+        dict: Словарь с информацией о памяти в МБ
+    """
+    if not PSUTIL_AVAILABLE:
+        return {'rss': 0, 'vms': 0, 'percent': 0}
+    
+    try:
+        # Получаем информацию о текущем процессе
+        process = psutil.Process(os.getpid())
+        
+        # Получаем информацию о памяти
+        memory_info = process.memory_info()
+        
+        # Конвертируем в МБ
+        memory_data = {
+            'rss': round(memory_info.rss / 1024 / 1024, 2),  # Резидентная память (RAM)
+            'vms': round(memory_info.vms / 1024 / 1024, 2),  # Виртуальная память
+            'percent': round(process.memory_percent(), 2)     # Процент от общей памяти системы
+        }
+        
+        return memory_data
+    except Exception as e:
+        print(f"Ошибка получения информации о памяти: {e}")
+        return {'rss': 0, 'vms': 0, 'percent': 0}
+
+
+def display_memory_stats(stage_name, memory_before, memory_after):
+    """
+    Отображение статистики использования памяти для этапа
+    
+    Аргументы:
+        stage_name (str): Название этапа
+        memory_before (dict): Память до этапа
+        memory_after (dict): Память после этапа
+    """
+    if not PSUTIL_AVAILABLE:
+        return
+    
+    memory_diff = memory_after['rss'] - memory_before['rss']
+    print(f"   💾 Память после {stage_name}: {memory_after['rss']} МБ (изменение: {memory_diff:+.2f} МБ)")
+
 
 def measure_loading_performance():
     """
@@ -43,13 +98,21 @@ def measure_loading_performance():
     системы для анализа производительности и выявления узких мест.
     
     Возвращает:
-        tuple: (словарь_времен, root_окно, экземпляр_приложения) или None при ошибке
+        tuple: (словарь_времен, словарь_памяти, root_окно, экземпляр_приложения) или None при ошибке
     """
     times = {}
+    memory_stats = {}
+    
+    # Измерение памяти в начале
+    initial_memory = get_memory_usage()
+    memory_stats['initial'] = initial_memory
+    if PSUTIL_AVAILABLE:
+        print(f"🔋 Начальное потребление памяти: {initial_memory['rss']} МБ")
+    print("📊 Начало измерения производительности загрузки...")
     
     # Этап 1: Проверка зависимостей и отображение заголовка
-    print("📊 Начало измерения производительности загрузки...")
     start = time.time()
+    memory_before = get_memory_usage()
     
     # Отображение заголовка системы и информации об авторе
     display_system_header()
@@ -61,10 +124,15 @@ def measure_loading_performance():
         return None
     
     times['dependencies'] = time.time() - start
+    memory_after = get_memory_usage()
+    memory_stats['dependencies'] = memory_after
+    
     print(f"   ✅ Проверка зависимостей: {times['dependencies']:.3f} сек")
+    display_memory_stats("проверки зависимостей", memory_before, memory_after)
     
     # Этап 2: Импорт основных модулей системы
     start = time.time()
+    memory_before = get_memory_usage()
     print("🔧 Инициализация компонентов системы...")
     
     # Динамические импорты после проверки зависимостей для избежания ошибок импорта
@@ -72,10 +140,15 @@ def measure_loading_performance():
     from audit.integration import SecurityAuditIntegration
     
     times['imports'] = time.time() - start
+    memory_after = get_memory_usage()
+    memory_stats['imports'] = memory_after
+    
     print(f"   ✅ Импорт модулей: {times['imports']:.3f} сек")
+    display_memory_stats("импорта модулей", memory_before, memory_after)
     
     # Этап 3: Создание главного приложения
     start = time.time()
+    memory_before = get_memory_usage()
     print("🎯 Создание главного приложения...")
     
     # Инициализация корневого окна tkinter
@@ -85,10 +158,15 @@ def measure_loading_performance():
     face_recognition_app = FaceRecognitionSystem(root)
     
     times['app_creation'] = time.time() - start
+    memory_after = get_memory_usage()
+    memory_stats['app_creation'] = memory_after
+    
     print(f"   ✅ Создание приложения: {times['app_creation']:.3f} сек")
+    display_memory_stats("создания приложения", memory_before, memory_after)
     
     # Этап 4: Интеграция системы аудита безопасности
     start = time.time()
+    memory_before = get_memory_usage()
     print("🛡️  Интеграция системы аудита безопасности...")
     
     # Интеграция всеобъемлющей системы аудита безопасности
@@ -97,9 +175,13 @@ def measure_loading_performance():
     )
     
     times['audit_integration'] = time.time() - start
-    print(f"   ✅ Интеграция аудита: {times['audit_integration']:.3f} сек")
+    memory_after = get_memory_usage()
+    memory_stats['audit_integration'] = memory_after
     
-    return times, root, face_recognition_app
+    print(f"   ✅ Интеграция аудита: {times['audit_integration']:.3f} сек")
+    display_memory_stats("интеграции аудита", memory_before, memory_after)
+    
+    return times, memory_stats, root, face_recognition_app
 
 
 def main():
@@ -126,7 +208,7 @@ def main():
     # Общий таймер загрузки системы для измерения производительности
     total_start_time = time.time()
     
-    print("📊 РЕЖИМ ИЗМЕРЕНИЯ ПРОИЗВОДИТЕЛЬНОСТИ")
+    print("📊 РЕЖИМ ИЗМЕРЕНИЯ ПРОИЗВОДИТЕЛЬНОСТИ И ПАМЯТИ")
     print("=" * 80)
     
     try:
@@ -137,17 +219,18 @@ def main():
             input("\n⏸️  Нажмите Enter для завершения...")
             return
         
-        times, root, face_recognition_app = result
+        times, memory_stats, root, face_recognition_app = result
         
         # Настройка обработчика корректного завершения работы приложения
         root.protocol("WM_DELETE_WINDOW", face_recognition_app.handle_application_shutdown)
         
         # Вычисление общего времени загрузки
         total_time = time.time() - total_start_time
+        final_memory = get_memory_usage()
         
         # Вывод детальной статистики производительности
         print("\n" + "=" * 70)
-        print("📈 ДЕТАЛЬНАЯ СТАТИСТИКА ПРОИЗВОДИТЕЛЬНОСТИ ЗАГРУЗКИ")
+        print("📈 ДЕТАЛЬНАЯ СТАТИСТИКА ПРОИЗВОДИТЕЛЬНОСТИ")
         print("=" * 70)
         print(f"📋 Проверка зависимостей:     {times['dependencies']:.3f} сек")
         print(f"📦 Импорт модулей:            {times['imports']:.3f} сек")
@@ -155,6 +238,22 @@ def main():
         print(f"🛡️  Интеграция аудита:        {times['audit_integration']:.3f} сек")
         print("-" * 70)
         print(f"🏁 ОБЩЕЕ ВРЕМЯ ЗАГРУЗКИ:      {total_time:.3f} СЕКУНД")
+        
+        # Статистика памяти (только если psutil доступен)
+        if PSUTIL_AVAILABLE:
+            print("\n" + "=" * 70)
+            print("💾 СТАТИСТИКА ПОТРЕБЛЕНИЯ ПАМЯТИ")
+            print("=" * 70)
+            print(f"🔋 Начальная память:          {memory_stats['initial']['rss']} МБ")
+            print(f"📋 После проверки зависимостей: {memory_stats['dependencies']['rss']} МБ")
+            print(f"📦 После импорта модулей:     {memory_stats['imports']['rss']} МБ")
+            print(f"🎯 После создания приложения: {memory_stats['app_creation']['rss']} МБ")
+            print(f"🛡️  После интеграции аудита:  {memory_stats['audit_integration']['rss']} МБ")
+            print("-" * 70)
+            print(f"💿 ИТОГОВОЕ ПОТРЕБЛЕНИЕ:      {final_memory['rss']} МБ")
+            print(f"📊 ОБЩИЙ ПРИРОСТ ПАМЯТИ:      {final_memory['rss'] - memory_stats['initial']['rss']:.2f} МБ")
+            print(f"🔄 ПРОЦЕНТ ОТ СИСТЕМНОЙ ПАМЯТИ: {final_memory['percent']:.2f}%")
+        
         print("=" * 70)
         
         # Анализ производительности
@@ -164,6 +263,18 @@ def main():
         
         fastest_stage = min(times.items(), key=lambda x: x[1])
         print(f"   ⚡ Самый быстрый этап: {fastest_stage[0]} ({fastest_stage[1]:.3f} сек)")
+        
+        # Анализ памяти (только если psutil доступен)
+        if PSUTIL_AVAILABLE:
+            memory_growth = {}
+            prev_memory = memory_stats['initial']['rss']
+            for stage, memory_info in list(memory_stats.items())[1:]:
+                growth = memory_info['rss'] - prev_memory
+                memory_growth[stage] = growth
+                prev_memory = memory_info['rss']
+            
+            largest_memory_growth = max(memory_growth.items(), key=lambda x: x[1])
+            print(f"   🐘 Наибольший прирост памяти: {largest_memory_growth[0]} (+{largest_memory_growth[1]:.2f} МБ)")
         
         # Процентное соотношение времени по этапам
         print(f"\n📈 РАСПРЕДЕЛЕНИЕ ВРЕМЕНИ:")
@@ -228,6 +339,12 @@ def validate_system_dependencies():
     
     Возвращает:
         bool: True если все зависимости доступны, False при критических ошибках
+        
+    Категории проверки:
+    - Основные библиотеки Python (встроенные модули)
+    - Зависимости компьютерного зрения (OpenCV, face_recognition)
+    - Зависимости платформы графического интерфейса (tkinter, PIL)
+    - Математические библиотеки и библиотеки обработки данных (numpy, и т.д.)
     """
     print("🔍 Проверка системных зависимостей...")
     
